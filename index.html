@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c1a4d" />
+  <meta name="description" content="Order of the Ball — medieval knight-themed soccer ball mastery training. One ball. 5×5. Lifetime progress." />
+  <!-- Plan B: when app is on GitHub Pages, set this to your Render API origin (no trailing slash). Leave empty if app+API share one host. -->
+  <meta name="ootb-api-base" content="" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Order of the Ball</title>
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Order%20of%20the%20Ball%22%2C%22short_name%22%3A%22Order%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230c1a4d%22%2C%22theme_color%22%3A%22%230c1a4d%22%7D" />
+  <style>
+    :root {
+      --royal: #0c1a4d;
+      --royal-mid: #152a6e;
+      --royal-light: #1e3a8a;
+      --gold: #d4af37;
+      --gold-bright: #f0d060;
+      --gold-dim: #a68428;
+      --iron: #1a1a1e;
+      --iron-mid: #2a2a32;
+      --parchment: #f3e6c8;
+      --parchment-dim: #e0d0a8;
+      --ink: #1c1408;
+      --blood: #8b2942;
+      --success: #2d6a4f;
+      --safe: max(12px, env(safe-area-inset-left));
+      --safer: max(12px, env(safe-area-inset-right));
+      --safeb: max(12px, env(safe-area-inset-bottom));
+      --safet: max(12px, env(safe-area-inset-top));
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --display: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: var(--font);
+      background: var(--royal);
+      color: var(--parchment);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.45;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: 0.02em; margin: 0; }
+    p { margin: 0; }
+
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      background:
+        radial-gradient(ellipse 120% 60% at 50% -10%, rgba(212,175,55,0.12), transparent 50%),
+        linear-gradient(180deg, var(--royal) 0%, #081230 100%);
+    }
+
+    .screen { display: none; flex: 1; flex-direction: column; padding: calc(var(--safet) + 8px) var(--safer) calc(var(--safeb) + 72px) var(--safe); }
+    .screen.active { display: flex; }
+    .screen-scroll { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      display: none;
+      gap: 2px;
+      padding: 8px var(--safer) calc(8px + var(--safeb));
+      background: rgba(12, 26, 77, 0.95);
+      border-top: 1px solid rgba(212,175,55,0.25);
+      backdrop-filter: blur(10px);
+      z-index: 50;
+    }
+    .nav.visible { display: grid; grid-template-columns: repeat(5, 1fr); }
+    .nav button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 2px;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: rgba(243,230,200,0.45);
+      border-radius: 8px;
+    }
+    .nav button .ico { font-size: 1.15rem; line-height: 1; }
+    .nav button.active { color: var(--gold-bright); background: rgba(212,175,55,0.1); }
+
+    .crest {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: 3px solid var(--gold);
+      background: var(--iron);
+      display: grid; place-items: center;
+      font-size: 2rem;
+      box-shadow: 0 0 0 4px rgba(212,175,55,0.15), 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .crest-sm { width: 48px; height: 48px; font-size: 1.4rem; border-width: 2px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.85rem;
+      transition: transform 0.12s, filter 0.12s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; pointer-events: none; }
+    .btn-gold {
+      background: linear-gradient(180deg, var(--gold-bright), var(--gold-dim));
+      color: var(--ink);
+      box-shadow: 0 4px 0 #6b5420, 0 6px 16px rgba(0,0,0,0.3);
+    }
+    .btn-royal {
+      background: linear-gradient(180deg, var(--royal-light), var(--royal));
+      color: var(--parchment);
+      border: 1px solid rgba(212,175,55,0.4);
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(243,230,200,0.25);
+      color: var(--parchment-dim);
+    }
+    .btn-danger {
+      background: var(--blood);
+      color: #fff;
+    }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn { flex: 1; }
+
+    .card {
+      background: linear-gradient(145deg, rgba(26,26,30,0.9), rgba(12,26,77,0.65));
+      border: 1px solid rgba(212,175,55,0.28);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .card-parchment {
+      background: linear-gradient(160deg, var(--parchment) 0%, var(--parchment-dim) 100%);
+      color: var(--ink);
+      border: 2px solid var(--gold-dim);
+    }
+    .card-parchment h2, .card-parchment h3 { color: var(--royal); }
+    .muted { color: rgba(243,230,200,0.55); font-size: 0.85rem; }
+    .gold { color: var(--gold-bright); }
+    .tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(212,175,55,0.4);
+      color: var(--gold);
+    }
+
+    .bar {
+      height: 10px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(212,175,55,0.2);
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold-bright));
+      border-radius: inherit;
+      transition: width 0.4s ease;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat {
+      text-align: center;
+      padding: 10px 6px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .stat .v { font-family: var(--display); font-size: 1.25rem; color: var(--gold-bright); font-weight: 700; }
+    .stat .l { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(243,230,200,0.5); margin-top: 2px; }
+
+    .bout-track { display: flex; gap: 8px; margin-top: 12px; }
+    .bout-pip {
+      flex: 1;
+      height: 48px;
+      border-radius: 10px;
+      border: 2px dashed rgba(212,175,55,0.3);
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .bout-pip.done {
+      border-style: solid;
+      border-color: var(--gold);
+      background: rgba(212,175,55,0.15);
+    }
+
+    .emblem-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    .emblem-opt {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      border: 2px solid rgba(212,175,55,0.2);
+      background: var(--iron);
+      font-size: 1.5rem;
+      display: grid;
+      place-items: center;
+    }
+    .emblem-opt.selected {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212,175,55,0.2);
+      background: var(--royal-mid);
+    }
+
+    .field {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(212,175,55,0.35);
+      background: rgba(0,0,0,0.3);
+      color: var(--parchment);
+      outline: none;
+    }
+    .field:focus { border-color: var(--gold); }
+    .field::placeholder { color: rgba(243,230,200,0.35); }
+
+    .timer {
+      font-family: var(--display);
+      font-size: 3.5rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--gold-bright);
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 30px rgba(212,175,55,0.3);
+      font-variant-numeric: tabular-nums;
+    }
+    .timer.done { color: #6ee7a8; }
+
+    .list { display: flex; flex-direction: column; gap: 10px; }
+    .list-item {
+      text-align: left;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(212,175,55,0.22);
+      background: rgba(0,0,0,0.22);
+    }
+    .list-item:active { background: rgba(212,175,55,0.08); }
+    .list-item.locked { opacity: 0.45; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    .chip {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: 1px solid rgba(243,230,200,0.2);
+      color: rgba(243,230,200,0.65);
+    }
+    .chip.on {
+      background: rgba(212,175,55,0.18);
+      border-color: var(--gold);
+      color: var(--gold-bright);
+    }
+
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+      padding-bottom: calc(16px + var(--safeb));
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 448px;
+      max-height: 85dvh;
+      overflow-y: auto;
+      border-radius: 16px 16px 12px 12px;
+      padding: 20px;
+      background: linear-gradient(180deg, var(--royal-mid), var(--iron));
+      border: 1px solid rgba(212,175,55,0.4);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 88px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--iron);
+      border: 1px solid var(--gold);
+      color: var(--gold-bright);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.3s;
+      z-index: 200;
+      white-space: nowrap;
+      max-width: 90vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .arena-card {
+      background: linear-gradient(145deg, #152a6e, #0a1230 60%, #1a1a1e);
+      border: 3px solid var(--gold);
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .arena-card::before {
+      content: "";
+      position: absolute; inset: 8px;
+      border: 1px solid rgba(212,175,55,0.25);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    .lb-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.2);
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .lb-row.you {
+      border: 1px solid var(--gold);
+      background: rgba(212,175,55,0.1);
+    }
+    .lb-rank { width: 1.5rem; color: var(--gold); font-family: var(--display); font-weight: 700; }
+
+    .steps { padding-left: 1.1rem; margin: 8px 0 0; }
+    .steps li { margin-bottom: 6px; font-size: 0.9rem; }
+    .counsel {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--gold);
+      background: rgba(212,175,55,0.08);
+      font-size: 0.88rem;
+      font-style: italic;
+    }
+    .video-wrap {
+      margin: 12px 0 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(212,175,55,0.35);
+      background: #000;
+      aspect-ratio: 16 / 9;
+      position: relative;
+    }
+    .video-wrap iframe,
+    .video-wrap video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #000;
+    }
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: linear-gradient(160deg, #1a1a22, #0c1a4d);
+      color: rgba(243,230,200,0.55);
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 16px;
+    }
+    .video-placeholder .big { font-size: 1.75rem; }
+    .card-parchment .video-placeholder {
+      background: linear-gradient(160deg, #2a2418, #1a1520);
+      color: rgba(28,20,8,0.55);
+    }
+
+    .hero-title {
+      font-size: clamp(1.6rem, 6vw, 2rem);
+      text-align: center;
+      color: var(--gold-bright);
+      text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+    }
+    .subtitle { text-align: center; color: rgba(243,230,200,0.6); font-size: 0.9rem; margin-top: 6px; }
+
+    .path-lock { font-size: 0.75rem; color: rgba(243,230,200,0.45); }
+
+    @media (min-width: 481px) {
+      body { background: #050a18; }
+      .app { min-height: 100dvh; box-shadow: 0 0 60px rgba(0,0,0,0.5); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- PAYWALL -->
+    <section class="screen active" id="screen-paywall">
+      <div class="screen-scroll" style="display:flex;flex-direction:column;justify-content:center;gap:18px;padding-top:24px;">
+        <div style="text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:8px">⚔️</div>
+          <h1 class="hero-title">Order of the Ball</h1>
+          <p class="subtitle">Ball mastery for kids · One ball · 5×5 space<br/>One-time purchase · Lifetime access on this device</p>
+        </div>
+        <div class="card">
+          <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
+          <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
+            <li>Daily quest of 3 Training Bouts (~20 min each)</li>
+            <li>Ranks 1–99 · titles · streaks · shields</li>
+            <li>Squire → Legend ball mastery paths &amp; scrolls</li>
+            <li>Text-first drills now · video demos rolling out later</li>
+          </ul>
+        </div>
+        <button type="button" class="btn btn-gold" id="btn-buy">Unlock lifetime access</button>
+        <p class="muted" style="text-align:center;font-size:0.8rem" id="paywall-status"></p>
+        <div class="card" style="padding:12px">
+          <p class="muted" style="margin-bottom:8px;font-size:0.8rem">Have a family / beta access code?</p>
+          <input class="field" id="input-access-code" placeholder="Access code" autocomplete="off" />
+          <button type="button" class="btn btn-royal" style="margin-top:10px" id="btn-redeem-code">Redeem code</button>
+        </div>
+        <p class="muted" style="text-align:center;font-size:0.72rem">Secure checkout by Stripe · Cancel anytime before paying</p>
+      </div>
+    </section>
+
+    <!-- ONBOARDING -->
+    <section class="screen" id="screen-onboarding">
+      <div class="screen-scroll" style="display:flex;flex-direction:column;justify-content:center;gap:20px;padding-top:24px;">
+        <div style="text-align:center">
+          <div style="font-size:2.5rem;margin-bottom:8px">⚔️</div>
+          <h1 class="hero-title">Order of the Ball</h1>
+          <p class="subtitle">Ball mastery · One ball · 5×5 arena<br/>Train as a knight. Rise through the ranks.</p>
+        </div>
+        <div class="card">
+          <label class="muted" for="input-name" style="display:block;margin-bottom:6px">Your name, page</label>
+          <input class="field" id="input-name" maxlength="18" placeholder="e.g. Sir Leo" autocomplete="nickname" />
+          <p class="muted" style="margin-top:14px;margin-bottom:8px">Choose your emblem</p>
+          <div class="emblem-grid" id="emblem-grid"></div>
+        </div>
+        <button type="button" class="btn btn-gold" id="btn-begin">Begin the Quest</button>
+        <p class="muted" style="text-align:center;font-size:0.75rem">Progress is saved on this device · Lifetime access</p>
+      </div>
+    </section>
+
+    <!-- HALL -->
+    <section class="screen" id="screen-hall">
+      <div class="screen-scroll">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div class="crest crest-sm" id="hall-emblem">⚔️</div>
+          <div style="flex:1;min-width:0">
+            <h1 style="font-size:1.25rem;color:var(--gold-bright)" id="hall-name">—</h1>
+            <p class="muted" id="hall-rankline">Rank 1 · Page</p>
+          </div>
+          <div style="text-align:right">
+            <div class="gold" style="font-family:var(--display);font-weight:700" id="hall-aura">0</div>
+            <div class="muted" style="font-size:0.65rem;text-transform:uppercase">Aura</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="font-size:1rem;color:var(--gold)">Today’s Quest</h2>
+            <span class="tag" id="hall-day-status">In progress</span>
+          </div>
+          <p class="muted" style="margin-top:4px">Complete 3 Training Bouts (~20 min each)</p>
+          <div class="bout-track" id="hall-bouts"></div>
+          <button type="button" class="btn btn-gold" style="margin-top:14px" id="btn-start-bout">Enter Training Bout</button>
+        </div>
+
+        <div class="stat-grid" style="margin-bottom:12px">
+          <div class="stat"><div class="v" id="hall-streak">0</div><div class="l">Quest streak</div></div>
+          <div class="stat"><div class="v" id="hall-mult">1.0×</div><div class="l">Multiplier</div></div>
+          <div class="stat"><div class="v" id="hall-shields">0</div><div class="l">Shields 🛡️</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span class="muted">Next title</span>
+            <span class="gold" style="font-size:0.85rem" id="hall-title-name">Consistent</span>
+          </div>
+          <div class="bar"><i id="hall-title-bar" style="width:0%"></i></div>
+          <p class="muted" style="margin-top:6px;font-size:0.75rem" id="hall-title-meta">0 / 3 streak days</p>
+          <p class="muted" style="margin-top:4px;font-size:0.75rem">Best streak ever: <span class="gold" id="hall-best">0</span> days</p>
+        </div>
+
+        <div class="card">
+          <h2 style="font-size:1rem;color:var(--gold);margin-bottom:8px">Ball Mastery Path</h2>
+          <p style="font-weight:600" id="hall-path-name">Squire Path</p>
+          <p class="muted" style="margin-top:4px;font-size:0.85rem" id="hall-path-focus">Foundation footwork</p>
+          <button type="button" class="btn btn-royal" style="margin-top:12px" id="btn-hall-scrolls">Open Scrolls</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOUT -->
+    <section class="screen" id="screen-bout">
+      <div class="screen-scroll">
+        <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;margin-bottom:12px" id="btn-bout-back">← Hall</button>
+        <div class="card card-parchment" style="margin-bottom:12px">
+          <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Squire</span>
+          <h2 style="margin-top:8px;font-size:1.35rem" id="bout-drill-title">Drill</h2>
+          <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="bout-drill-setup"></p>
+          <div id="bout-video" class="video-wrap" aria-label="Drill demonstration"></div>
+          <p class="muted" style="font-size:0.75rem;margin-top:6px">Watch the demo, then train the bout.</p>
+          <ol class="steps" id="bout-drill-steps"></ol>
+          <div class="counsel" id="bout-counsel"></div>
+        </div>
+        <div class="card" style="text-align:center">
+          <p class="muted" style="margin-bottom:4px">Training Bout timer</p>
+          <div class="timer" id="bout-timer">20:00</div>
+          <p class="muted" style="margin-top:4px" id="bout-timer-hint">Stand in your 5×5 · one ball only</p>
+          <div class="btn-row" style="margin-top:16px">
+            <button type="button" class="btn btn-royal" id="btn-timer-toggle">Begin</button>
+            <button type="button" class="btn btn-ghost" id="btn-timer-reset">Reset</button>
+          </div>
+          <button type="button" class="btn btn-gold" style="margin-top:10px" id="btn-complete-bout" disabled>Mark Bout Complete</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCROLLS -->
+    <section class="screen" id="screen-scrolls">
+      <div class="screen-scroll">
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:4px">📜 Scrolls</h1>
+        <p class="muted" style="margin-bottom:8px">Ball mastery drills · unlocked by rank</p>
+        <div class="chips" id="scroll-filters"></div>
+        <div class="list" id="scroll-list"></div>
+      </div>
+    </section>
+
+    <!-- RANK -->
+    <section class="screen" id="screen-rank">
+      <div class="screen-scroll">
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Rank & Titles</h1>
+        <div class="card" style="margin-bottom:12px;text-align:center">
+          <div class="crest" id="rank-emblem" style="margin:0 auto 12px">⚔️</div>
+          <h2 class="gold" id="rank-title">Rank 1</h2>
+          <p class="muted" id="rank-band">Page of the Order</p>
+          <div style="margin-top:14px;text-align:left">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px">
+              <span class="muted">Aura to next rank</span>
+              <span class="gold" id="rank-aura-meta">0 / 100</span>
+            </div>
+            <div class="bar"><i id="rank-aura-bar" style="width:0%"></i></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Paths of Mastery</h3>
+          <div class="list" id="rank-paths"></div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Titles earned</h3>
+          <div class="list" id="rank-titles"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARENA -->
+    <section class="screen" id="screen-arena">
+      <div class="screen-scroll">
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">🏟️ Arena</h1>
+        <div class="arena-card" id="arena-card" style="margin-bottom:14px">
+          <div class="crest" id="arena-emblem" style="margin:0 auto 10px">⚔️</div>
+          <h2 style="color:var(--gold-bright);font-size:1.3rem" id="arena-name">Knight</h2>
+          <p style="color:rgba(243,230,200,0.7);margin-top:4px" id="arena-rank">Rank 1 · Page</p>
+          <p style="margin-top:12px;font-size:0.85rem;color:var(--gold)" id="arena-stats">0 Aura · 0 day streak</p>
+          <p style="margin-top:8px;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(243,230,200,0.4)">Order of the Ball</p>
+        </div>
+        <button type="button" class="btn btn-gold" id="btn-share" style="margin-bottom:16px">Share rank card</button>
+        <div class="card">
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Hall of Fame <span class="muted" style="font-weight:400;font-size:0.75rem">(demo)</span></h3>
+          <div id="leaderboard"></div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="nav" id="main-nav">
+      <button type="button" data-nav="hall" class="active"><span class="ico">🏰</span>Hall</button>
+      <button type="button" data-nav="bout"><span class="ico">⚔️</span>Bout</button>
+      <button type="button" data-nav="scrolls"><span class="ico">📜</span>Scrolls</button>
+      <button type="button" data-nav="rank"><span class="ico">👑</span>Rank</button>
+      <button type="button" data-nav="arena"><span class="ico">🏟️</span>Arena</button>
+    </nav>
+  </div>
+
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal" id="modal-body"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+(function () {
+  'use strict';
+
+  /**
+   * Plan B config:
+   * - Local / Render serving app+API: leave meta ootb-api-base empty
+   * - GitHub Pages: set <meta name="ootb-api-base" content="https://your-api.onrender.com">
+   */
+  const CONFIG = {
+    API_BASE: (
+      document.querySelector('meta[name="ootb-api-base"]')?.getAttribute('content') ||
+      ''
+    ).replace(/\/$/, ''),
+  };
+
+  const STORAGE_KEY = 'orderOfTheBall_v1';
+  const UNLOCK_KEY = 'orderOfTheBall_unlock_v1';
+  const BOUT_SECONDS = 20 * 60;
+  const AURA_BASE = 100;
+
+  function apiUrl(path) {
+    const base = (CONFIG.API_BASE || '').replace(/\/$/, '');
+    return base + path;
+  }
+
+  function getUnlockToken() {
+    try {
+      return localStorage.getItem(UNLOCK_KEY) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function setUnlockToken(token) {
+    localStorage.setItem(UNLOCK_KEY, token);
+  }
+
+  function isUnlocked() {
+    return Boolean(getUnlockToken());
+  }
+
+  function enterApp() {
+    document.getElementById('main-nav').classList.add('visible');
+    state = load();
+    if (state && state.name) {
+      ensureDayBoundary();
+      showScreen('hall');
+    } else {
+      document.getElementById('main-nav').classList.remove('visible');
+      showScreen('onboarding');
+      renderOnboarding();
+    }
+  }
+
+  async function verifySessionFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'cancel') {
+      history.replaceState({}, '', window.location.pathname);
+      toast('Checkout canceled — the Order awaits when you are ready.');
+      return false;
+    }
+    const sessionId = params.get('session_id');
+    if (!sessionId) return false;
+
+    const status = document.getElementById('paywall-status');
+    if (status) status.textContent = 'Verifying your oath with Stripe…';
+
+    try {
+      const res = await fetch(apiUrl('/api/verify-session'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      setUnlockToken(data.token);
+      history.replaceState({}, '', window.location.pathname);
+      toast('Lifetime access unlocked. Welcome to the Order.');
+      enterApp();
+      return true;
+    } catch (err) {
+      if (status) status.textContent = err.message || 'Could not verify payment.';
+      toast(err.message || 'Could not verify payment.');
+      history.replaceState({}, '', window.location.pathname);
+      return false;
+    }
+  }
+
+  async function startCheckout() {
+    const btn = document.getElementById('btn-buy');
+    const status = document.getElementById('paywall-status');
+    btn.disabled = true;
+    status.textContent = 'Opening secure Stripe checkout…';
+    try {
+      const res = await fetch(apiUrl('/api/create-checkout-session'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Checkout failed');
+      window.location.href = data.url;
+    } catch (err) {
+      status.textContent = err.message || 'Checkout failed';
+      btn.disabled = false;
+      toast(err.message || 'Checkout failed');
+    }
+  }
+
+  async function redeemCode() {
+    const code = document.getElementById('input-access-code').value.trim();
+    const status = document.getElementById('paywall-status');
+    if (!code) {
+      toast('Enter an access code.');
+      return;
+    }
+    status.textContent = 'Redeeming code…';
+    try {
+      const res = await fetch(apiUrl('/api/redeem-code'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid code');
+      setUnlockToken(data.token);
+      toast('Access granted.');
+      enterApp();
+    } catch (err) {
+      status.textContent = err.message || 'Invalid code';
+      toast(err.message || 'Invalid code');
+    }
+  }
+
+  const EMBLEMS = ['⚔️','🛡️','🦁','🐉','🦅','🔥','⚡','🌙','⭐','🏴'];
+
+  const MILESTONES = [
+    { id: 'consistent', days: 3, title: 'Consistent', shields: 0 },
+    { id: 'week_warrior', days: 7, title: 'Week Warrior', shields: 1 },
+    { id: 'fortnight', days: 14, title: 'Fortnight Knight', shields: 1 },
+    { id: 'unbreakable', days: 30, title: 'Unbreakable', shields: 2 },
+  ];
+
+  const MAX_RANK = 99;
+
+  /** Cumulative Aura required to *reach* each rank (index = rank - 1). Ranks 1–99. */
+  const RANK_AURA = (function () {
+    const a = [0]; // Rank 1
+    for (let r = 2; r <= MAX_RANK; r++) {
+      // Gentle early climb, steeper later — full journey without feeling impossible early
+      const step = 70 + (r - 1) * 28 + Math.floor((r - 1) * (r - 1) * 0.35);
+      a.push(a[r - 2] + step);
+    }
+    return a;
+  })();
+
+  const PATHS = [
+    {
+      id: 'squire',
+      name: 'Squire Path',
+      unlockRank: 1,
+      focus: 'Foundation footwork',
+      drills: [
+        {
+          id: 'sq1',
+          title: 'Toe Taps of the Gate',
+          setup: 'One ball · 5×5 · stay light on your feet',
+          // video: YouTube/Vimeo URL or direct .mp4 link — leave '' until filmed
+          video: '',
+          steps: [
+            'Place the ball at the center of your 5×5.',
+            'Alternate toe taps on top of the ball for 45 seconds.',
+            'Rest 15 seconds. Repeat for 8 rounds.',
+            'Keep the ball still — you move, the ball waits.',
+          ],
+          counsel: 'A true squire masters stillness before speed. Soft knees, quiet head.',
+        },
+        {
+          id: 'sq2',
+          title: 'Inside Boxes',
+          setup: 'Ball at feet · imaginary square under you',
+          video: '',
+          steps: [
+            'Pass the ball side to side with the inside of each foot.',
+            'Small touches only — ball never leaves a 2-foot circle.',
+            '30 seconds continuous, 15 rest × 10 rounds.',
+            'Count clean touches. Beat your last count.',
+          ],
+          counsel: 'The knight’s first weapon is the inside of the foot. Polish it daily.',
+        },
+        {
+          id: 'sq3',
+          title: 'Sole Rolls — North & South',
+          setup: 'Ball under the sole · 5×5 lanes',
+          video: '',
+          steps: [
+            'Roll the ball forward with the sole, then back.',
+            'Switch feet every 8 rolls.',
+            '4 minutes continuous flow, then 1 minute free juggle attempts.',
+            'Stay inside your arena lines.',
+          ],
+          counsel: 'The sole is the shield of control. Never look only down — glance up every third roll.',
+        },
+        {
+          id: 'sq4',
+          title: 'Figure-Eight Foundations',
+          setup: 'Two cones or shoes 1 yard apart · one ball',
+          video: '',
+          steps: [
+            'Dribble a figure-eight around the markers using both feet.',
+            'Outside of foot on the turns, inside on the straights.',
+            '5 slow perfect circuits, then 5 at match pace.',
+            'If the ball escapes the 5×5, restart that circuit.',
+          ],
+          counsel: 'Curves forge champions. Straight lines are for peasants who never turn.',
+        },
+      ],
+    },
+    {
+      id: 'knight',
+      name: 'Knight Path',
+      unlockRank: 4,
+      focus: 'Combinations & control',
+      drills: [
+        {
+          id: 'kn1',
+          title: 'Push-Pull Combos',
+          setup: 'One ball · center of 5×5',
+          video: '',
+          steps: [
+            'Push the ball with the laces, pull it back with the sole.',
+            'Alternate feet: right push-pull, left push-pull.',
+            '45 on / 15 off × 8 rounds.',
+            'Add a 180° turn after every pull.',
+          ],
+          counsel: 'Push creates space; pull steals it back. Own both.',
+        },
+        {
+          id: 'kn2',
+          title: 'V-Cuts of Valor',
+          setup: 'Ball · face one edge of your arena',
+          video: '',
+          steps: [
+            'Drag the ball back diagonally with the sole, then push out with the inside (the “V”).',
+            'Alternate starting foot each rep.',
+            '20 clean V-cuts, rest 30 seconds, repeat 5 sets.',
+            'Keep every touch inside the 5×5.',
+          ],
+          counsel: 'The V is a knight’s feint — sell the retreat, attack the angle.',
+        },
+        {
+          id: 'kn3',
+          title: 'Wall-less One-Twos',
+          setup: 'Imagine a wall · or use a real one if safe',
+          video: '',
+          steps: [
+            'Pass firmly against a wall (or roll out and chase if no wall).',
+            'Receive with one touch, return with the second.',
+            'Inside foot only for 3 minutes, then laces for 3 minutes.',
+            'Stay in your 5×5 receiving zone.',
+          ],
+          counsel: 'Without a partner, the wall is your squire. Demand perfect weight.',
+        },
+        {
+          id: 'kn4',
+          title: 'Box Escape Turns',
+          setup: 'Ball near the edge of your 5×5',
+          video: '',
+          steps: [
+            'Dribble to the edge, execute a Cruyff or inside cut, explode the other way.',
+            'Alternate turn types every two reps.',
+            '12 turns, rest, then 12 more at higher speed.',
+            'First touch after the turn must stay in the arena.',
+          ],
+          counsel: 'A cornered knight turns sharper. Practice the edge until it feels like open field.',
+        },
+      ],
+    },
+    {
+      id: 'champion',
+      name: 'Champion Path',
+      unlockRank: 8,
+      focus: 'Speed + weak foot',
+      drills: [
+        {
+          id: 'ch1',
+          title: 'Weak-Foot Gauntlet',
+          setup: 'Non-dominant foot only · one ball',
+          video: '',
+          steps: [
+            'All touches with weak foot for 8 full minutes.',
+            'Mix toe taps, inside passes to yourself, and sole rolls.',
+            'If strong foot touches, restart the minute.',
+            'Finish with 20 weak-foot push-passes against a wall.',
+          ],
+          counsel: 'Champions have no weak side — only a side that hungers more.',
+        },
+        {
+          id: 'ch2',
+          title: 'Burst & Brake',
+          setup: '5×5 · ball at feet',
+          video: '',
+          steps: [
+            'Sprint-dribble 3 hard touches to the edge.',
+            'Dead stop with the sole. Pause one breath.',
+            'Burst the opposite direction.',
+            '20 bursts. Quality over chaos.',
+          ],
+          counsel: 'Speed without a brake is a charge into the moat. Master both.',
+        },
+        {
+          id: 'ch3',
+          title: 'Laces Lightning',
+          setup: 'Ball · short driven touches',
+          video: '',
+          steps: [
+            'Using only laces, take quick punchy touches across the box.',
+            'Keep the ball within a yard of your feet.',
+            '40 seconds on, 20 off × 10 rounds.',
+            'Count how many touches per round — climb the number.',
+          ],
+          counsel: 'The laces are the lance. Strike true, not wild.',
+        },
+        {
+          id: 'ch4',
+          title: 'Weak-Foot Figure-Eight',
+          setup: 'Two markers · weak foot only',
+          video: '',
+          steps: [
+            'Figure-eight dribbling using only non-dominant foot.',
+            'Outside and inside both allowed — strong foot is banished.',
+            '6 slow circuits, 6 race circuits.',
+            'Any strong-foot touch voids the circuit.',
+          ],
+          counsel: 'Shame the strong foot by leaving it idle. Glory to the weaker blade.',
+        },
+        {
+          id: 'ch5',
+          title: 'Reaction Rolls',
+          setup: 'Ball under sole · coach is your own callouts',
+          video: '',
+          steps: [
+            'Call “left”, “right”, “pull”, “push” at random and obey instantly.',
+            'Or pre-record a list and follow it.',
+            '5 minutes continuous reaction mastery.',
+            'Stay centered in the 5×5.',
+          ],
+          counsel: 'The champion’s mind arrives before the feet. Train the call.',
+        },
+      ],
+    },
+    {
+      id: 'legend',
+      name: 'Legend Path',
+      unlockRank: 13,
+      focus: 'Eyes-up mastery & flow',
+      drills: [
+        {
+          id: 'lg1',
+          title: 'Eyes to the Horizon',
+          setup: 'Ball · fix a far target (tree, clock, poster)',
+          video: '',
+          steps: [
+            'Dribble free in the 5×5 while looking at the far target.',
+            'Glance down only when you must — then eyes up again.',
+            '8 minutes continuous. If you stare at the ball for more than a second, restart the minute.',
+            'Add sole rolls while eyes stay up.',
+          ],
+          counsel: 'Legends see the field. The ball is a servant, not a master.',
+        },
+        {
+          id: 'lg2',
+          title: 'Flow Medley',
+          setup: 'One ball · no pauses of shame',
+          video: '',
+          steps: [
+            'Link: toe taps → inside boxes → sole roll → V-cut → turn → repeat.',
+            'Never stop the ball for more than one breath.',
+            '10 minutes of continuous flow.',
+            'Film yourself once a week — watch for stillness of the head.',
+          ],
+          counsel: 'Flow is the highest rank of the Order. Chains of touches, unbroken.',
+        },
+        {
+          id: 'lg3',
+          title: 'Blind Gate Feeling',
+          setup: 'Soft focus · peripheral vision',
+          video: '',
+          steps: [
+            'Mark four “gates” as the corners of your 5×5.',
+            'Move the ball from gate to gate without staring at it.',
+            'Call the gate name before you arrive.',
+            '6 minutes. Missed gate = five toe taps penance.',
+          ],
+          counsel: 'Feel the ball as a knight feels the reins — light contact, full awareness.',
+        },
+        {
+          id: 'lg4',
+          title: 'Silence of the Master',
+          setup: 'No counting out loud · pure rhythm',
+          video: '',
+          steps: [
+            'Perform your best freestyle ball mastery in silence for 12 minutes.',
+            'No phone, no music if it distracts — only breath and ball.',
+            'End with 60 seconds of still balance: ball under sole, eyes closed.',
+            'Journal one thing you felt, not saw.',
+          ],
+          counsel: 'In silence the Order speaks. Listen with your feet.',
+        },
+      ],
+    },
+  ];
+
+  const DEMO_LEADERS = [
+    { name: 'Lady Mira', emblem: '🦁', rank: 72, aura: RANK_AURA[71] + 500 },
+    { name: 'Sir Cedric', emblem: '🐉', rank: 54, aura: RANK_AURA[53] + 200 },
+    { name: 'Knight Ash', emblem: '⚡', rank: 31, aura: RANK_AURA[30] + 100 },
+    { name: 'Squire Jun', emblem: '🛡️', rank: 12, aura: RANK_AURA[11] + 50 },
+    { name: 'Page Ren', emblem: '⭐', rank: 4, aura: RANK_AURA[3] },
+  ];
+
+  // —— State ——
+  let state = null;
+  let selectedEmblem = EMBLEMS[0];
+  let timer = { remaining: BOUT_SECONDS, running: false, handle: null, started: false };
+  let activeDrill = null;
+  let scrollFilter = 'all';
+
+  function defaultState() {
+    return {
+      name: '',
+      emblem: '⚔️',
+      aura: 0,
+      streak: 0,
+      bestStreak: 0,
+      shields: 0,
+      titles: [],
+      boutsToday: 0,
+      boutDay: null,
+      lastConqueredDay: null,
+      lastSeenDay: null,
+      totalBouts: 0,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return Object.assign(defaultState(), JSON.parse(raw));
+    } catch {
+      return null;
+    }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function parseDay(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function daysBetween(a, b) {
+    const ms = parseDay(b) - parseDay(a);
+    return Math.round(ms / 86400000);
+  }
+
+  function streakMultiplier(streak) {
+    if (streak >= 7) return 2;
+    if (streak >= 4) return 1.5;
+    if (streak >= 2) return 1.25;
+    return 1;
+  }
+
+  function rankFromAura(aura) {
+    let rank = 1;
+    for (let r = RANK_AURA.length; r >= 1; r--) {
+      if (aura >= RANK_AURA[r - 1]) {
+        rank = r;
+        break;
+      }
+    }
+    return rank;
+  }
+
+  /**
+   * Rank title ladder (1–99) — Grandmaster is the end (97–99).
+   * Page 1 · Squire 2–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
+   * High Legend 63 · Sage 70 · High Sage 77 · Sentinel 83 · Paragon 90 · Grandmaster 97
+   */
+  function rankBand(rank) {
+    if (rank >= 97) return 'Grandmaster of the Order';
+    if (rank >= 90) return 'Paragon of the Order';
+    if (rank >= 83) return 'Sentinel of the Order';
+    if (rank >= 77) return 'High Sage of the Order';
+    if (rank >= 70) return 'Sage of the Order';
+    if (rank >= 63) return 'High Legend of the Order';
+    if (rank >= 55) return 'Legend of the Order';
+    if (rank >= 40) return 'Champion of the Order';
+    if (rank >= 30) return 'Guardian of the Order';
+    if (rank >= 10) return 'Knight of the Order';
+    if (rank >= 2) return 'Squire of the Order'; // ranks 2–9
+    return 'Page of the Order'; // rank 1 only
+  }
+
+  function auraProgress(aura) {
+    const rank = rankFromAura(aura);
+    const cur = RANK_AURA[rank - 1] || 0;
+    if (rank >= MAX_RANK) {
+      return { rank: MAX_RANK, cur, next: cur, into: 0, span: 1, pct: 100, maxed: true };
+    }
+    const next = RANK_AURA[rank];
+    const span = Math.max(1, next - cur);
+    const into = Math.min(span, Math.max(0, aura - cur));
+    return { rank, cur, next, into, span, pct: Math.min(100, (into / span) * 100), maxed: false };
+  }
+
+  function pathUnlocked(path, rank) {
+    return rank >= path.unlockRank;
+  }
+
+  function highestUnlockedPath(rank) {
+    let p = PATHS[0];
+    for (const path of PATHS) {
+      if (pathUnlocked(path, rank)) p = path;
+    }
+    return p;
+  }
+
+  function ensureDayBoundary() {
+    const today = todayKey();
+    if (state.boutDay !== today) {
+      state.boutsToday = 0;
+      state.boutDay = today;
+    }
+
+    if (!state.lastSeenDay) {
+      state.lastSeenDay = today;
+      save();
+      return;
+    }
+
+    if (state.lastSeenDay === today) return;
+
+    // Apply streak shields for missed days between lastConquered and yesterday
+    if (state.lastConqueredDay) {
+      const gap = daysBetween(state.lastConqueredDay, today) - 1;
+      if (gap > 0) {
+        let missed = gap;
+        let used = 0;
+        while (missed > 0 && state.shields > 0) {
+          state.shields -= 1;
+          missed -= 1;
+          used += 1;
+        }
+        if (used > 0) {
+          toast('🛡️ Streak Shield' + (used > 1 ? 's' : '') + ' held the line!');
+        }
+        if (missed > 0) {
+          if (state.streak > 0) toast('Quest streak broken… rise again, knight.');
+          state.streak = 0;
+        }
+      }
+    }
+
+    state.lastSeenDay = today;
+    save();
+  }
+
+  function awardMilestones() {
+    let gained = [];
+    for (const m of MILESTONES) {
+      if (state.streak >= m.days && !state.titles.includes(m.id)) {
+        state.titles.push(m.id);
+        if (m.shields > 0) state.shields += m.shields;
+        gained.push(m);
+      }
+    }
+    return gained;
+  }
+
+  function nextMilestone() {
+    for (const m of MILESTONES) {
+      if (!state.titles.includes(m.id)) return m;
+    }
+    return null;
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // —— UI ——
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+    const el = document.getElementById('screen-' + id);
+    if (el) el.classList.add('active');
+    document.querySelectorAll('#main-nav button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.nav === id);
+    });
+    if (id === 'hall') renderHall();
+    if (id === 'scrolls') renderScrolls();
+    if (id === 'rank') renderRank();
+    if (id === 'arena') renderArena();
+    if (id === 'bout') renderBout();
+  }
+
+  function openModal(html) {
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('modal-bg').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+  }
+
+  function renderOnboarding() {
+    const grid = document.getElementById('emblem-grid');
+    grid.innerHTML = EMBLEMS.map(
+      (e) =>
+        `<button type="button" class="emblem-opt${e === selectedEmblem ? ' selected' : ''}" data-emblem="${e}">${e}</button>`
+    ).join('');
+  }
+
+  function renderHall() {
+    ensureDayBoundary();
+    const rank = rankFromAura(state.aura);
+    const path = highestUnlockedPath(rank);
+    document.getElementById('hall-emblem').textContent = state.emblem;
+    document.getElementById('hall-name').textContent = state.name;
+    document.getElementById('hall-rankline').textContent = 'Rank ' + rank + ' · ' + rankBand(rank);
+    document.getElementById('hall-aura').textContent = state.aura.toLocaleString();
+    document.getElementById('hall-streak').textContent = String(state.streak);
+    document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
+    document.getElementById('hall-shields').textContent = String(state.shields);
+    document.getElementById('hall-best').textContent = String(state.bestStreak);
+
+    const conquered = state.boutsToday >= 3;
+    document.getElementById('hall-day-status').textContent = conquered ? 'Day Conquered' : 'In progress';
+    document.getElementById('hall-bouts').innerHTML = [0, 1, 2]
+      .map((i) => `<div class="bout-pip${state.boutsToday > i ? ' done' : ''}">${state.boutsToday > i ? '⚔️' : '·'}</div>`)
+      .join('');
+
+    const btn = document.getElementById('btn-start-bout');
+    if (conquered) {
+      btn.textContent = 'Day Conquered — Rest, knight';
+      btn.disabled = true;
+    } else {
+      btn.textContent = 'Enter Training Bout (' + (state.boutsToday + 1) + '/3)';
+      btn.disabled = false;
+    }
+
+    const nm = nextMilestone();
+    if (nm) {
+      document.getElementById('hall-title-name').textContent = nm.title;
+      const pct = Math.min(100, (state.streak / nm.days) * 100);
+      document.getElementById('hall-title-bar').style.width = pct + '%';
+      document.getElementById('hall-title-meta').textContent =
+        state.streak + ' / ' + nm.days + ' streak days' + (nm.shields ? ' · +' + nm.shields + ' shield' : '');
+    } else {
+      document.getElementById('hall-title-name').textContent = 'All titles claimed';
+      document.getElementById('hall-title-bar').style.width = '100%';
+      document.getElementById('hall-title-meta').textContent = 'You are Unbreakable';
+    }
+
+    document.getElementById('hall-path-name').textContent = path.name;
+    document.getElementById('hall-path-focus').textContent = path.focus + ' · unlocks higher paths as you rise';
+  }
+
+  function pickDrill() {
+    const rank = rankFromAura(state.aura);
+    const path = highestUnlockedPath(rank);
+    const drills = path.drills;
+    const i = state.totalBouts % drills.length;
+    return { path, drill: drills[i] };
+  }
+
+  /** Accepts YouTube, youtu.be, Vimeo, or direct .mp4/.webm URLs */
+  function parseVideo(url) {
+    if (!url || !String(url).trim()) return null;
+    const u = String(url).trim();
+    let m = u.match(
+      /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/
+    );
+    if (m) {
+      return {
+        type: 'iframe',
+        src:
+          'https://www.youtube-nocookie.com/embed/' +
+          m[1] +
+          '?rel=0&modestbranding=1&playsinline=1',
+      };
+    }
+    m = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (m) {
+      return {
+        type: 'iframe',
+        src: 'https://player.vimeo.com/video/' + m[1] + '?title=0&byline=0&portrait=0',
+      };
+    }
+    if (/\.(mp4|webm|ogg)(\?|$)/i.test(u) || u.startsWith('blob:') || u.startsWith('data:video')) {
+      return { type: 'video', src: u };
+    }
+    // Assume generic embeddable URL
+    if (/^https?:\/\//i.test(u)) {
+      return { type: 'iframe', src: u };
+    }
+    return null;
+  }
+
+  function renderVideoHtml(url) {
+    const parsed = parseVideo(url);
+    if (!parsed) {
+      return (
+        '<div class="video-placeholder">' +
+        '<span class="big">🎬</span>' +
+        '<span>Demo reel coming soon</span>' +
+        '<span style="font-size:0.7rem;opacity:0.8">Follow the scroll steps until the film arrives</span>' +
+        '</div>'
+      );
+    }
+    if (parsed.type === 'video') {
+      return (
+        '<video controls playsinline preload="metadata" src="' +
+        parsed.src.replace(/"/g, '&quot;') +
+        '"></video>'
+      );
+    }
+    return (
+      '<iframe src="' +
+      parsed.src.replace(/"/g, '&quot;') +
+      '" title="Drill demonstration" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>'
+    );
+  }
+
+  function renderBout() {
+    if (!activeDrill) {
+      const picked = pickDrill();
+      activeDrill = picked;
+    }
+    const { path, drill } = activeDrill;
+    document.getElementById('bout-path-tag').textContent = path.name;
+    document.getElementById('bout-drill-title').textContent = drill.title;
+    document.getElementById('bout-drill-setup').textContent = drill.setup;
+    document.getElementById('bout-video').innerHTML = renderVideoHtml(drill.video);
+    document.getElementById('bout-drill-steps').innerHTML = drill.steps.map((s) => '<li>' + s + '</li>').join('');
+    document.getElementById('bout-counsel').textContent = "Knight’s counsel: " + drill.counsel;
+    updateTimerUI();
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function updateTimerUI() {
+    const el = document.getElementById('bout-timer');
+    el.textContent = formatTime(timer.remaining);
+    el.classList.toggle('done', timer.remaining === 0);
+    const complete = document.getElementById('btn-complete-bout');
+    complete.disabled = timer.remaining > 0;
+    const toggle = document.getElementById('btn-timer-toggle');
+    if (!timer.started) toggle.textContent = 'Begin';
+    else if (timer.running) toggle.textContent = 'Pause';
+    else if (timer.remaining === 0) toggle.textContent = 'Finished';
+    else toggle.textContent = 'Resume';
+    document.getElementById('bout-timer-hint').textContent =
+      timer.remaining === 0
+        ? 'The bout is complete — claim your honor'
+        : 'Stand in your 5×5 · one ball only';
+  }
+
+  function stopTimerInterval() {
+    if (timer.handle) {
+      clearInterval(timer.handle);
+      timer.handle = null;
+    }
+    timer.running = false;
+  }
+
+  function startTimerInterval() {
+    stopTimerInterval();
+    timer.running = true;
+    timer.started = true;
+    timer.handle = setInterval(() => {
+      if (timer.remaining <= 0) {
+        stopTimerInterval();
+        timer.remaining = 0;
+        updateTimerUI();
+        toast('⚔️ Bout timer complete!');
+        return;
+      }
+      timer.remaining -= 1;
+      updateTimerUI();
+    }, 1000);
+    updateTimerUI();
+  }
+
+  function resetTimer() {
+    stopTimerInterval();
+    timer.remaining = BOUT_SECONDS;
+    timer.started = false;
+    updateTimerUI();
+  }
+
+  function completeBout() {
+    if (timer.remaining > 0) return;
+    ensureDayBoundary();
+    if (state.boutsToday >= 3) {
+      toast('Today’s quest is already conquered.');
+      showScreen('hall');
+      return;
+    }
+
+    state.boutsToday += 1;
+    state.totalBouts += 1;
+    state.boutDay = todayKey();
+
+    let msg = '⚔️ Bout ' + state.boutsToday + ' of 3 complete!';
+
+    if (state.boutsToday === 3) {
+      const today = todayKey();
+      if (state.lastConqueredDay !== today) {
+        if (state.lastConqueredDay && daysBetween(state.lastConqueredDay, today) === 1) {
+          state.streak += 1;
+        } else {
+          state.streak = 1;
+        }
+        state.lastConqueredDay = today;
+        if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+
+        const mult = streakMultiplier(state.streak);
+        const gain = Math.round(AURA_BASE * mult);
+        state.aura += gain;
+
+        const titles = awardMilestones();
+        msg =
+          '🏰 Day Conquered! +' +
+          gain +
+          ' Aura (' +
+          mult +
+          '× streak)';
+        if (titles.length) {
+          msg += ' · Title: ' + titles.map((t) => t.title).join(', ');
+          if (titles.some((t) => t.shields)) msg += ' · Shields gained!';
+        }
+      }
+    }
+
+    save();
+    stopTimerInterval();
+    resetTimer();
+    activeDrill = null;
+    toast(msg);
+    showScreen('hall');
+  }
+
+  function renderScrolls() {
+    const rank = rankFromAura(state.aura);
+    const filters = document.getElementById('scroll-filters');
+    filters.innerHTML =
+      '<button type="button" class="chip' +
+      (scrollFilter === 'all' ? ' on' : '') +
+      '" data-f="all">All</button>' +
+      PATHS.map(
+        (p) =>
+          '<button type="button" class="chip' +
+          (scrollFilter === p.id ? ' on' : '') +
+          '" data-f="' +
+          p.id +
+          '">' +
+          p.name.replace(' Path', '') +
+          '</button>'
+      ).join('');
+
+    const list = document.getElementById('scroll-list');
+    let html = '';
+    for (const path of PATHS) {
+      if (scrollFilter !== 'all' && scrollFilter !== path.id) continue;
+      const unlocked = pathUnlocked(path, rank);
+      html += '<div style="margin-bottom:8px"><p class="gold" style="font-family:var(--display);font-weight:700;margin-bottom:6px">' +
+        path.name +
+        (unlocked ? '' : ' <span class="path-lock">🔒 Rank ' + path.unlockRank + '</span>') +
+        '</p>';
+      for (const d of path.drills) {
+        html +=
+          '<button type="button" class="list-item' +
+          (unlocked ? '' : ' locked') +
+          '" data-drill="' +
+          path.id +
+          ':' +
+          d.id +
+          '">' +
+          '<div style="display:flex;justify-content:space-between;gap:8px"><strong>' +
+          d.title +
+          '</strong>' +
+          (unlocked ? '<span class="tag">Open</span>' : '<span class="tag">Locked</span>') +
+          '</div><p class="muted" style="margin-top:4px;font-size:0.8rem">' +
+          d.setup +
+          '</p></button>';
+      }
+      html += '</div>';
+    }
+    list.innerHTML = html;
+  }
+
+  function openDrillModal(pathId, drillId) {
+    const path = PATHS.find((p) => p.id === pathId);
+    const drill = path && path.drills.find((d) => d.id === drillId);
+    if (!path || !drill) return;
+    const rank = rankFromAura(state.aura);
+    if (!pathUnlocked(path, rank)) {
+      toast('Locked until Rank ' + path.unlockRank);
+      return;
+    }
+    openModal(
+      '<h2 style="color:var(--gold-bright);margin-bottom:4px">' +
+        drill.title +
+        '</h2>' +
+        '<p class="muted" style="margin-bottom:10px">' +
+        path.name +
+        ' · ' +
+        drill.setup +
+        '</p>' +
+        '<div class="video-wrap">' +
+        renderVideoHtml(drill.video) +
+        '</div>' +
+        '<ol class="steps">' +
+        drill.steps.map((s) => '<li>' + s + '</li>').join('') +
+        '</ol>' +
+        '<div class="counsel">Knight’s counsel: ' +
+        drill.counsel +
+        '</div>' +
+        '<button type="button" class="btn btn-gold" style="margin-top:16px" id="modal-train">Train this scroll</button>' +
+        '<button type="button" class="btn btn-ghost" style="margin-top:8px" id="modal-close">Close</button>'
+    );
+    document.getElementById('modal-close').onclick = closeModal;
+    document.getElementById('modal-train').onclick = function () {
+      activeDrill = { path, drill };
+      resetTimer();
+      closeModal();
+      showScreen('bout');
+    };
+  }
+
+  function renderRank() {
+    const prog = auraProgress(state.aura);
+    document.getElementById('rank-emblem').textContent = state.emblem;
+    document.getElementById('rank-title').textContent = 'Rank ' + prog.rank;
+    document.getElementById('rank-band').textContent = rankBand(prog.rank);
+    document.getElementById('rank-aura-meta').textContent = prog.maxed
+      ? state.aura.toLocaleString() + ' Aura · Max Rank ' + MAX_RANK
+      : state.aura.toLocaleString() +
+        ' Aura · next rank at ' +
+        prog.next.toLocaleString();
+    document.getElementById('rank-aura-bar').style.width = prog.pct + '%';
+
+    document.getElementById('rank-paths').innerHTML = PATHS.map((p) => {
+      const ok = pathUnlocked(p, prog.rank);
+      return (
+        '<div class="list-item' +
+        (ok ? '' : ' locked') +
+        '"><strong>' +
+        p.name +
+        '</strong> ' +
+        (ok ? '<span class="tag">Unlocked</span>' : '<span class="tag">Rank ' + p.unlockRank + '</span>') +
+        '<p class="muted" style="margin-top:4px;font-size:0.8rem">' +
+        p.focus +
+        ' · ' +
+        p.drills.length +
+        ' scrolls</p></div>'
+      );
+    }).join('');
+
+    const titles = MILESTONES.map((m) => {
+      const earned = state.titles.includes(m.id);
+      return (
+        '<div class="list-item' +
+        (earned ? '' : ' locked') +
+        '"><strong>' +
+        (earned ? '🏅 ' : '☆ ') +
+        m.title +
+        '</strong>' +
+        '<p class="muted" style="margin-top:4px;font-size:0.8rem">' +
+        m.days +
+        '-day streak' +
+        (m.shields ? ' · +' + m.shields + ' Streak Shield' : '') +
+        (earned ? ' · Earned' : ' · Locked') +
+        '</p></div>'
+      );
+    }).join('');
+    document.getElementById('rank-titles').innerHTML = titles;
+  }
+
+  function renderArena() {
+    const rank = rankFromAura(state.aura);
+    document.getElementById('arena-emblem').textContent = state.emblem;
+    document.getElementById('arena-name').textContent = state.name;
+    document.getElementById('arena-rank').textContent = 'Rank ' + rank + ' · ' + rankBand(rank);
+    document.getElementById('arena-stats').textContent =
+      state.aura.toLocaleString() + ' Aura · ' + state.streak + ' day streak · Best ' + state.bestStreak;
+
+    const you = {
+      name: state.name,
+      emblem: state.emblem,
+      rank,
+      aura: state.aura,
+      you: true,
+    };
+    const board = DEMO_LEADERS.concat([you]).sort((a, b) => b.aura - a.aura).slice(0, 8);
+    document.getElementById('leaderboard').innerHTML = board
+      .map((row, i) => {
+        return (
+          '<div class="lb-row' +
+          (row.you ? ' you' : '') +
+          '"><span class="lb-rank">' +
+          (i + 1) +
+          '</span><span>' +
+          row.emblem +
+          '</span><span style="flex:1">' +
+          row.name +
+          (row.you ? ' (you)' : '') +
+          '</span><span class="muted">R' +
+          row.rank +
+          ' · ' +
+          row.aura.toLocaleString() +
+          '</span></div>'
+        );
+      })
+      .join('');
+  }
+
+  async function shareCard() {
+    const text =
+      'I am ' +
+      state.name +
+      ' — Rank ' +
+      rankFromAura(state.aura) +
+      ' ' +
+      rankBand(rankFromAura(state.aura)) +
+      ' in the Order of the Ball. ' +
+      state.aura +
+      ' Aura · ' +
+      state.streak +
+      '-day quest streak. One ball. 5×5. Ball mastery.';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Order of the Ball', text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast('Rank proclamation copied!');
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast('Rank proclamation copied!');
+      } catch {
+        toast('Could not share — screenshot your card!');
+      }
+    }
+  }
+
+  function beginOrder() {
+    const name = document.getElementById('input-name').value.trim();
+    if (!name) {
+      toast('Every knight needs a name.');
+      return;
+    }
+    state = defaultState();
+    state.name = name.slice(0, 18);
+    state.emblem = selectedEmblem;
+    state.boutDay = todayKey();
+    state.lastSeenDay = todayKey();
+    save();
+    document.getElementById('main-nav').classList.add('visible');
+    showScreen('hall');
+    toast('The Order accepts you, ' + state.name + '.');
+  }
+
+  function bindAppEvents() {
+    document.getElementById('emblem-grid').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-emblem]');
+      if (!btn) return;
+      selectedEmblem = btn.dataset.emblem;
+      renderOnboarding();
+    });
+
+    document.getElementById('btn-begin').addEventListener('click', beginOrder);
+
+    document.getElementById('main-nav').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-nav]');
+      if (!btn) return;
+      if (btn.dataset.nav === 'bout') {
+        if (!activeDrill) activeDrill = pickDrill();
+        showScreen('bout');
+      } else {
+        showScreen(btn.dataset.nav);
+      }
+    });
+
+    document.getElementById('btn-start-bout').addEventListener('click', () => {
+      activeDrill = pickDrill();
+      resetTimer();
+      showScreen('bout');
+    });
+    document.getElementById('btn-hall-scrolls').addEventListener('click', () => showScreen('scrolls'));
+    document.getElementById('btn-bout-back').addEventListener('click', () => showScreen('hall'));
+
+    document.getElementById('btn-timer-toggle').addEventListener('click', () => {
+      if (timer.remaining === 0) return;
+      if (timer.running) {
+        stopTimerInterval();
+        updateTimerUI();
+      } else {
+        startTimerInterval();
+      }
+    });
+    document.getElementById('btn-timer-reset').addEventListener('click', () => {
+      if (timer.running && !confirm('Reset the bout timer?')) return;
+      resetTimer();
+    });
+    document.getElementById('btn-complete-bout').addEventListener('click', () => completeBout());
+
+    document.getElementById('scroll-filters').addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-f]');
+      if (!chip) return;
+      scrollFilter = chip.dataset.f;
+      renderScrolls();
+    });
+    document.getElementById('scroll-list').addEventListener('click', (e) => {
+      const item = e.target.closest('[data-drill]');
+      if (!item) return;
+      const [pid, did] = item.dataset.drill.split(':');
+      openDrillModal(pid, did);
+    });
+
+    document.getElementById('btn-share').addEventListener('click', shareCard);
+    document.getElementById('modal-bg').addEventListener('click', (e) => {
+      if (e.target.id === 'modal-bg') closeModal();
+    });
+  }
+
+  async function boot() {
+    bindAppEvents();
+    document.getElementById('btn-buy').addEventListener('click', startCheckout);
+    document.getElementById('btn-redeem-code').addEventListener('click', redeemCode);
+
+    // Returning from Stripe Checkout
+    if (await verifySessionFromUrl()) return;
+
+    if (isUnlocked()) {
+      enterApp();
+      return;
+    }
+
+    // Locked
+    document.getElementById('main-nav').classList.remove('visible');
+    showScreen('paywall');
+    renderOnboarding();
+  }
+
+  boot();
+})();
+  </script>
+</body>
+</html>
