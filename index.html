@@ -257,6 +257,33 @@
       font-variant-numeric: tabular-nums;
     }
     .timer.done { color: #6ee7a8; }
+    .timer.phase-work { color: var(--gold-bright); }
+    .timer.phase-rest { color: #93c5fd; text-shadow: 0 0 24px rgba(147,197,253,0.35); }
+    .phase-badge {
+      display: inline-block;
+      margin-bottom: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .phase-badge.work {
+      background: rgba(212,175,55,0.18);
+      border: 1px solid rgba(212,175,55,0.45);
+      color: var(--gold-bright);
+    }
+    .phase-badge.rest {
+      background: rgba(147,197,253,0.12);
+      border: 1px solid rgba(147,197,253,0.4);
+      color: #93c5fd;
+    }
+    .phase-badge.done {
+      background: rgba(110,231,168,0.12);
+      border: 1px solid rgba(110,231,168,0.4);
+      color: #6ee7a8;
+    }
 
     .list { display: flex; flex-direction: column; gap: 10px; }
     .list-item {
@@ -439,7 +466,7 @@
         <div class="card">
           <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
-            <li>Daily quest of 3 Training Bouts (~20 min each)</li>
+            <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
             <li>Ranks 1–99 · titles · streaks · shields</li>
             <li>Squire → Legend ball mastery paths &amp; scrolls</li>
             <li>Text-first drills now · video demos rolling out later</li>
@@ -495,7 +522,7 @@
             <h2 style="font-size:1rem;color:var(--gold)">Today’s Quest</h2>
             <span class="tag" id="hall-day-status">In progress</span>
           </div>
-          <p class="muted" style="margin-top:4px">Complete 3 Training Bouts (~20 min each)</p>
+          <p class="muted" style="margin-top:4px">Complete 3 Training Bouts (work/rest timers follow each drill)</p>
           <div class="bout-track" id="hall-bouts"></div>
           <button type="button" class="btn btn-gold" style="margin-top:14px" id="btn-start-bout">Enter Training Bout</button>
         </div>
@@ -539,9 +566,12 @@
           <div class="counsel" id="bout-counsel"></div>
         </div>
         <div class="card" style="text-align:center">
-          <p class="muted" style="margin-bottom:4px">Training Bout timer</p>
-          <div class="timer" id="bout-timer">20:00</div>
-          <p class="muted" style="margin-top:4px" id="bout-timer-hint">Stand in your 5×5 · one ball only</p>
+          <p class="muted" style="margin-bottom:6px">Drill timer · work &amp; rest from this scroll</p>
+          <div id="bout-phase-badge" class="phase-badge work">Work</div>
+          <div class="timer phase-work" id="bout-timer">0:45</div>
+          <p class="muted" style="margin-top:6px" id="bout-round-meta">Round 1 of 8</p>
+          <div class="bar" style="margin-top:10px"><i id="bout-progress-bar" style="width:0%"></i></div>
+          <p class="muted" style="margin-top:8px;font-size:0.8rem" id="bout-timer-hint">Stand in your 5×5 · one ball only</p>
           <div class="btn-row" style="margin-top:16px">
             <button type="button" class="btn btn-royal" id="btn-timer-toggle">Begin</button>
             <button type="button" class="btn btn-ghost" id="btn-timer-reset">Reset</button>
@@ -639,7 +669,6 @@
 
   const STORAGE_KEY = 'orderOfTheBall_v1';
   const UNLOCK_KEY = 'orderOfTheBall_unlock_v1';
-  const BOUT_SECONDS = 20 * 60;
   const AURA_BASE = 100;
 
   function apiUrl(path) {
@@ -778,6 +807,11 @@
     return a;
   })();
 
+  /**
+   * timing:
+   *   workSec / restSec / rounds  → interval blocks (rest between rounds)
+   *   OR segments: [{ type:'work'|'rest', sec, label?, round?, rounds? }]
+   */
   const PATHS = [
     {
       id: 'squire',
@@ -789,12 +823,12 @@
           id: 'sq1',
           title: 'Toe Taps of the Gate',
           setup: 'One ball · 5×5 · stay light on your feet',
-          // video: YouTube/Vimeo URL or direct .mp4 link — leave '' until filmed
           video: '',
+          timing: { workSec: 45, restSec: 15, rounds: 8 },
           steps: [
             'Place the ball at the center of your 5×5.',
-            'Alternate toe taps on top of the ball for 45 seconds.',
-            'Rest 15 seconds. Repeat for 8 rounds.',
+            'WORK: alternate toe taps on top of the ball.',
+            'REST: shake out, stay in the arena.',
             'Keep the ball still — you move, the ball waits.',
           ],
           counsel: 'A true squire masters stillness before speed. Soft knees, quiet head.',
@@ -804,10 +838,11 @@
           title: 'Inside Boxes',
           setup: 'Ball at feet · imaginary square under you',
           video: '',
+          timing: { workSec: 30, restSec: 15, rounds: 10 },
           steps: [
             'Pass the ball side to side with the inside of each foot.',
             'Small touches only — ball never leaves a 2-foot circle.',
-            '30 seconds continuous, 15 rest × 10 rounds.',
+            'WORK continuous; REST between rounds.',
             'Count clean touches. Beat your last count.',
           ],
           counsel: 'The knight’s first weapon is the inside of the foot. Polish it daily.',
@@ -817,10 +852,17 @@
           title: 'Sole Rolls — North & South',
           setup: 'Ball under the sole · 5×5 lanes',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 240, label: 'Sole roll flow' },
+              { type: 'rest', sec: 20, label: 'Brief rest' },
+              { type: 'work', sec: 60, label: 'Juggle attempts' },
+            ],
+          },
           steps: [
             'Roll the ball forward with the sole, then back.',
-            'Switch feet every 8 rolls.',
-            '4 minutes continuous flow, then 1 minute free juggle attempts.',
+            'Switch feet every 8 rolls during the flow block.',
+            'After rest: free juggle attempts for one minute.',
             'Stay inside your arena lines.',
           ],
           counsel: 'The sole is the shield of control. Never look only down — glance up every third roll.',
@@ -830,10 +872,17 @@
           title: 'Figure-Eight Foundations',
           setup: 'Two cones or shoes 1 yard apart · one ball',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 150, label: 'Slow circuits' },
+              { type: 'rest', sec: 30, label: 'Rest' },
+              { type: 'work', sec: 150, label: 'Match pace' },
+            ],
+          },
           steps: [
             'Dribble a figure-eight around the markers using both feet.',
             'Outside of foot on the turns, inside on the straights.',
-            '5 slow perfect circuits, then 5 at match pace.',
+            'First work block: slow perfect circuits. Second: match pace.',
             'If the ball escapes the 5×5, restart that circuit.',
           ],
           counsel: 'Curves forge champions. Straight lines are for peasants who never turn.',
@@ -851,10 +900,11 @@
           title: 'Push-Pull Combos',
           setup: 'One ball · center of 5×5',
           video: '',
+          timing: { workSec: 45, restSec: 15, rounds: 8 },
           steps: [
             'Push the ball with the laces, pull it back with the sole.',
             'Alternate feet: right push-pull, left push-pull.',
-            '45 on / 15 off × 8 rounds.',
+            'WORK / REST as the timer calls.',
             'Add a 180° turn after every pull.',
           ],
           counsel: 'Push creates space; pull steals it back. Own both.',
@@ -864,10 +914,11 @@
           title: 'V-Cuts of Valor',
           setup: 'Ball · face one edge of your arena',
           video: '',
+          timing: { workSec: 60, restSec: 30, rounds: 5 },
           steps: [
             'Drag the ball back diagonally with the sole, then push out with the inside (the “V”).',
-            'Alternate starting foot each rep.',
-            '20 clean V-cuts, rest 30 seconds, repeat 5 sets.',
+            'Alternate starting foot each rep during WORK.',
+            'REST 30 seconds between sets.',
             'Keep every touch inside the 5×5.',
           ],
           counsel: 'The V is a knight’s feint — sell the retreat, attack the angle.',
@@ -877,10 +928,17 @@
           title: 'Wall-less One-Twos',
           setup: 'Imagine a wall · or use a real one if safe',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 180, label: 'Inside foot' },
+              { type: 'rest', sec: 30, label: 'Rest' },
+              { type: 'work', sec: 180, label: 'Laces' },
+            ],
+          },
           steps: [
             'Pass firmly against a wall (or roll out and chase if no wall).',
             'Receive with one touch, return with the second.',
-            'Inside foot only for 3 minutes, then laces for 3 minutes.',
+            'First WORK: inside foot only. Second WORK: laces.',
             'Stay in your 5×5 receiving zone.',
           ],
           counsel: 'Without a partner, the wall is your squire. Demand perfect weight.',
@@ -890,10 +948,17 @@
           title: 'Box Escape Turns',
           setup: 'Ball near the edge of your 5×5',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 120, label: 'Set 1 turns' },
+              { type: 'rest', sec: 45, label: 'Rest' },
+              { type: 'work', sec: 120, label: 'Set 2 · faster' },
+            ],
+          },
           steps: [
             'Dribble to the edge, execute a Cruyff or inside cut, explode the other way.',
             'Alternate turn types every two reps.',
-            '12 turns, rest, then 12 more at higher speed.',
+            'Second work block: higher speed.',
             'First touch after the turn must stay in the arena.',
           ],
           counsel: 'A cornered knight turns sharper. Practice the edge until it feels like open field.',
@@ -911,11 +976,18 @@
           title: 'Weak-Foot Gauntlet',
           setup: 'Non-dominant foot only · one ball',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 480, label: 'Weak foot only' },
+              { type: 'rest', sec: 30, label: 'Rest' },
+              { type: 'work', sec: 90, label: 'Wall finishes' },
+            ],
+          },
           steps: [
-            'All touches with weak foot for 8 full minutes.',
+            'All touches with weak foot during the long WORK block.',
             'Mix toe taps, inside passes to yourself, and sole rolls.',
-            'If strong foot touches, restart the minute.',
-            'Finish with 20 weak-foot push-passes against a wall.',
+            'If strong foot touches, restart focus — do not cheat the foot.',
+            'Finish WORK: weak-foot push-passes against a wall.',
           ],
           counsel: 'Champions have no weak side — only a side that hungers more.',
         },
@@ -924,11 +996,12 @@
           title: 'Burst & Brake',
           setup: '5×5 · ball at feet',
           video: '',
+          timing: { workSec: 40, restSec: 20, rounds: 10 },
           steps: [
             'Sprint-dribble 3 hard touches to the edge.',
             'Dead stop with the sole. Pause one breath.',
-            'Burst the opposite direction.',
-            '20 bursts. Quality over chaos.',
+            'Burst the opposite direction for the WORK window.',
+            'REST between rounds. Quality over chaos.',
           ],
           counsel: 'Speed without a brake is a charge into the moat. Master both.',
         },
@@ -937,11 +1010,12 @@
           title: 'Laces Lightning',
           setup: 'Ball · short driven touches',
           video: '',
+          timing: { workSec: 40, restSec: 20, rounds: 10 },
           steps: [
             'Using only laces, take quick punchy touches across the box.',
             'Keep the ball within a yard of your feet.',
-            '40 seconds on, 20 off × 10 rounds.',
-            'Count how many touches per round — climb the number.',
+            'WORK / REST as timed.',
+            'Count how many touches per work round — climb the number.',
           ],
           counsel: 'The laces are the lance. Strike true, not wild.',
         },
@@ -950,10 +1024,17 @@
           title: 'Weak-Foot Figure-Eight',
           setup: 'Two markers · weak foot only',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 180, label: 'Slow · weak foot' },
+              { type: 'rest', sec: 30, label: 'Rest' },
+              { type: 'work', sec: 180, label: 'Race · weak foot' },
+            ],
+          },
           steps: [
             'Figure-eight dribbling using only non-dominant foot.',
             'Outside and inside both allowed — strong foot is banished.',
-            '6 slow circuits, 6 race circuits.',
+            'First WORK: slow. Second WORK: race pace.',
             'Any strong-foot touch voids the circuit.',
           ],
           counsel: 'Shame the strong foot by leaving it idle. Glory to the weaker blade.',
@@ -963,10 +1044,11 @@
           title: 'Reaction Rolls',
           setup: 'Ball under sole · coach is your own callouts',
           video: '',
+          timing: { workSec: 60, restSec: 15, rounds: 5 },
           steps: [
             'Call “left”, “right”, “pull”, “push” at random and obey instantly.',
-            'Or pre-record a list and follow it.',
-            '5 minutes continuous reaction mastery.',
+            'Or pre-record a list and follow it during WORK.',
+            'REST briefly between rounds.',
             'Stay centered in the 5×5.',
           ],
           counsel: 'The champion’s mind arrives before the feet. Train the call.',
@@ -984,10 +1066,11 @@
           title: 'Eyes to the Horizon',
           setup: 'Ball · fix a far target (tree, clock, poster)',
           video: '',
+          timing: { workSec: 60, restSec: 20, rounds: 8 },
           steps: [
             'Dribble free in the 5×5 while looking at the far target.',
             'Glance down only when you must — then eyes up again.',
-            '8 minutes continuous. If you stare at the ball for more than a second, restart the minute.',
+            'Each WORK minute: eyes-up standard. REST: breathe.',
             'Add sole rolls while eyes stay up.',
           ],
           counsel: 'Legends see the field. The ball is a servant, not a master.',
@@ -997,10 +1080,11 @@
           title: 'Flow Medley',
           setup: 'One ball · no pauses of shame',
           video: '',
+          timing: { workSec: 120, restSec: 30, rounds: 5 },
           steps: [
             'Link: toe taps → inside boxes → sole roll → V-cut → turn → repeat.',
-            'Never stop the ball for more than one breath.',
-            '10 minutes of continuous flow.',
+            'Never stop the ball for more than one breath during WORK.',
+            'REST between flow blocks.',
             'Film yourself once a week — watch for stillness of the head.',
           ],
           counsel: 'Flow is the highest rank of the Order. Chains of touches, unbroken.',
@@ -1010,11 +1094,12 @@
           title: 'Blind Gate Feeling',
           setup: 'Soft focus · peripheral vision',
           video: '',
+          timing: { workSec: 90, restSec: 20, rounds: 4 },
           steps: [
             'Mark four “gates” as the corners of your 5×5.',
             'Move the ball from gate to gate without staring at it.',
             'Call the gate name before you arrive.',
-            '6 minutes. Missed gate = five toe taps penance.',
+            'Missed gate = five toe taps penance during rest.',
           ],
           counsel: 'Feel the ball as a knight feels the reins — light contact, full awareness.',
         },
@@ -1023,10 +1108,16 @@
           title: 'Silence of the Master',
           setup: 'No counting out loud · pure rhythm',
           video: '',
+          timing: {
+            segments: [
+              { type: 'work', sec: 720, label: 'Silent flow' },
+              { type: 'work', sec: 60, label: 'Balance · eyes closed' },
+            ],
+          },
           steps: [
-            'Perform your best freestyle ball mastery in silence for 12 minutes.',
+            'Freestyle ball mastery in silence for the long WORK block.',
             'No phone, no music if it distracts — only breath and ball.',
-            'End with 60 seconds of still balance: ball under sole, eyes closed.',
+            'Final WORK: still balance, ball under sole, eyes closed.',
             'Journal one thing you felt, not saw.',
           ],
           counsel: 'In silence the Order speaks. Listen with your feet.',
@@ -1046,9 +1137,71 @@
   // —— State ——
   let state = null;
   let selectedEmblem = EMBLEMS[0];
-  let timer = { remaining: BOUT_SECONDS, running: false, handle: null, started: false };
+  let timer = {
+    segments: [],
+    index: 0,
+    remaining: 0,
+    running: false,
+    handle: null,
+    started: false,
+    finished: false,
+  };
   let activeDrill = null;
   let scrollFilter = 'all';
+
+  function buildSegments(drill) {
+    const t = drill.timing || { workSec: 45, restSec: 15, rounds: 8 };
+    if (Array.isArray(t.segments) && t.segments.length) {
+      return t.segments.map((s, i) => ({
+        type: s.type === 'rest' ? 'rest' : 'work',
+        sec: Math.max(1, Number(s.sec) || 30),
+        label: s.label || (s.type === 'rest' ? 'Rest' : 'Work'),
+        round: s.round || null,
+        rounds: s.rounds || null,
+        index: i,
+      }));
+    }
+    const workSec = Math.max(1, Number(t.workSec) || 45);
+    const restSec = Math.max(0, Number(t.restSec) || 0);
+    const rounds = Math.max(1, Number(t.rounds) || 1);
+    const segs = [];
+    for (let r = 1; r <= rounds; r++) {
+      segs.push({
+        type: 'work',
+        sec: workSec,
+        label: 'Work',
+        round: r,
+        rounds,
+      });
+      if (restSec > 0 && r < rounds) {
+        segs.push({
+          type: 'rest',
+          sec: restSec,
+          label: 'Rest',
+          round: r,
+          rounds,
+        });
+      }
+    }
+    return segs;
+  }
+
+  function currentSegment() {
+    return timer.segments[timer.index] || null;
+  }
+
+  function totalSegments() {
+    return timer.segments.length;
+  }
+
+  function progressPct() {
+    if (!timer.segments.length) return 0;
+    if (timer.finished) return 100;
+    const done = timer.index;
+    const cur = currentSegment();
+    const frac = cur ? 1 - timer.remaining / cur.sec : 0;
+    return Math.min(100, ((done + Math.max(0, frac)) / timer.segments.length) * 100);
+  }
 
   function defaultState() {
     return {
@@ -1380,30 +1533,73 @@
     document.getElementById('bout-video').innerHTML = renderVideoHtml(drill.video);
     document.getElementById('bout-drill-steps').innerHTML = drill.steps.map((s) => '<li>' + s + '</li>').join('');
     document.getElementById('bout-counsel').textContent = "Knight’s counsel: " + drill.counsel;
-    updateTimerUI();
+    resetTimer();
   }
 
   function formatTime(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
-    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    return m + ':' + String(s).padStart(2, '0');
   }
 
   function updateTimerUI() {
     const el = document.getElementById('bout-timer');
-    el.textContent = formatTime(timer.remaining);
-    el.classList.toggle('done', timer.remaining === 0);
+    const badge = document.getElementById('bout-phase-badge');
+    const meta = document.getElementById('bout-round-meta');
+    const bar = document.getElementById('bout-progress-bar');
+    const hint = document.getElementById('bout-timer-hint');
     const complete = document.getElementById('btn-complete-bout');
-    complete.disabled = timer.remaining > 0;
     const toggle = document.getElementById('btn-timer-toggle');
+    const seg = currentSegment();
+
+    if (timer.finished || !seg) {
+      el.textContent = '0:00';
+      el.className = 'timer done';
+      badge.textContent = 'Complete';
+      badge.className = 'phase-badge done';
+      meta.textContent = 'All intervals finished';
+      bar.style.width = '100%';
+      complete.disabled = false;
+      toggle.textContent = 'Finished';
+      hint.textContent = 'The bout is complete — claim your honor';
+      return;
+    }
+
+    el.textContent = formatTime(timer.remaining);
+    const isRest = seg.type === 'rest';
+    el.className = 'timer phase-' + (isRest ? 'rest' : 'work');
+    badge.textContent = (seg.label || (isRest ? 'Rest' : 'Work')).toUpperCase();
+    badge.className = 'phase-badge ' + (isRest ? 'rest' : 'work');
+
+    if (seg.round && seg.rounds) {
+      meta.textContent =
+        (isRest ? 'Rest after round ' : 'Round ') +
+        seg.round +
+        ' of ' +
+        seg.rounds +
+        ' · interval ' +
+        (timer.index + 1) +
+        '/' +
+        totalSegments();
+    } else {
+      meta.textContent =
+        (seg.label || (isRest ? 'Rest' : 'Work')) +
+        ' · interval ' +
+        (timer.index + 1) +
+        '/' +
+        totalSegments();
+    }
+
+    bar.style.width = progressPct().toFixed(1) + '%';
+    complete.disabled = true;
+
     if (!timer.started) toggle.textContent = 'Begin';
     else if (timer.running) toggle.textContent = 'Pause';
-    else if (timer.remaining === 0) toggle.textContent = 'Finished';
     else toggle.textContent = 'Resume';
-    document.getElementById('bout-timer-hint').textContent =
-      timer.remaining === 0
-        ? 'The bout is complete — claim your honor'
-        : 'Stand in your 5×5 · one ball only';
+
+    hint.textContent = isRest
+      ? 'Rest · breathe · stay ready in your 5×5'
+      : 'WORK · one ball · stay in your 5×5';
   }
 
   function stopTimerInterval() {
@@ -1414,16 +1610,35 @@
     timer.running = false;
   }
 
+  function advanceSegment() {
+    timer.index += 1;
+    if (timer.index >= timer.segments.length) {
+      timer.finished = true;
+      timer.remaining = 0;
+      stopTimerInterval();
+      updateTimerUI();
+      toast('⚔️ Drill complete — all work & rest finished!');
+      return;
+    }
+    const next = currentSegment();
+    timer.remaining = next.sec;
+    updateTimerUI();
+    if (next.type === 'rest') toast('Rest · ' + formatTime(next.sec));
+    else toast('Work · ' + formatTime(next.sec));
+  }
+
   function startTimerInterval() {
+    if (timer.finished) return;
     stopTimerInterval();
     timer.running = true;
     timer.started = true;
     timer.handle = setInterval(() => {
-      if (timer.remaining <= 0) {
+      if (timer.finished) {
         stopTimerInterval();
-        timer.remaining = 0;
-        updateTimerUI();
-        toast('⚔️ Bout timer complete!');
+        return;
+      }
+      if (timer.remaining <= 1) {
+        advanceSegment();
         return;
       }
       timer.remaining -= 1;
@@ -1434,13 +1649,19 @@
 
   function resetTimer() {
     stopTimerInterval();
-    timer.remaining = BOUT_SECONDS;
+    const drill = activeDrill && activeDrill.drill;
+    timer.segments = drill ? buildSegments(drill) : buildSegments({ timing: { workSec: 45, restSec: 15, rounds: 8 } });
+    timer.index = 0;
+    timer.finished = false;
     timer.started = false;
+    timer.running = false;
+    const first = currentSegment();
+    timer.remaining = first ? first.sec : 0;
     updateTimerUI();
   }
 
   function completeBout() {
-    if (timer.remaining > 0) return;
+    if (!timer.finished) return;
     ensureDayBoundary();
     if (state.boutsToday >= 3) {
       toast('Today’s quest is already conquered.');
@@ -1743,7 +1964,7 @@
     document.getElementById('btn-bout-back').addEventListener('click', () => showScreen('hall'));
 
     document.getElementById('btn-timer-toggle').addEventListener('click', () => {
-      if (timer.remaining === 0) return;
+      if (timer.finished) return;
       if (timer.running) {
         stopTimerInterval();
         updateTimerUI();

@@ -21,8 +21,13 @@ const PUBLIC_APP_URL = (
   process.env.PUBLIC_APP_URL || `http://localhost:${PORT}`
 ).replace(/\/$/, "");
 
-const PRICE_CENTS = Number(process.env.PRICE_CENTS || 1900);
-const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || "";
+// Empty string in Render becomes 0 with Number("") — treat blank as default $20
+const STRIPE_PRICE_ID = (process.env.STRIPE_PRICE_ID || "").trim();
+const _priceRaw = process.env.PRICE_CENTS;
+const PRICE_CENTS =
+  _priceRaw === undefined || String(_priceRaw).trim() === ""
+    ? 2000
+    : Number(_priceRaw);
 
 const corsOrigins = String(process.env.CORS_ORIGINS || "")
   .split(",")
@@ -57,11 +62,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 app.get("/api/health", (_req, res) => {
+  const priceConfigured =
+    Boolean(STRIPE_PRICE_ID) ||
+    (Number.isFinite(PRICE_CENTS) && PRICE_CENTS > 0);
   res.json({
     ok: true,
     product: "order-of-the-ball",
     stripe: Boolean(stripe),
-    priceConfigured: Boolean(STRIPE_PRICE_ID) || PRICE_CENTS > 0,
+    priceConfigured,
+    priceMode: STRIPE_PRICE_ID ? "stripe_price_id" : "price_cents",
+    priceCents: STRIPE_PRICE_ID ? null : PRICE_CENTS,
     appUrl: PUBLIC_APP_URL,
   });
 });
