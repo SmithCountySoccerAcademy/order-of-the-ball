@@ -2019,12 +2019,30 @@
     });
   }
 
+  /** Migrate renames (Page→Initiate scroll keys, etc.) without losing completion. */
+  function migrateState(s) {
+    if (!s || typeof s !== 'object') return s;
+    if (s.completedScrolls && typeof s.completedScrolls === 'object') {
+      const next = {};
+      for (const [k, v] of Object.entries(s.completedScrolls)) {
+        let nk = k;
+        // page:pg1 → initiate:in1
+        if (nk.indexOf('page:') === 0) {
+          nk = 'initiate:' + nk.slice(5).replace(/^pg/, 'in');
+        }
+        next[nk] = v;
+      }
+      s.completedScrolls = next;
+    }
+    return s;
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const s = Object.assign(defaultState(), parsed);
+      const s = migrateState(Object.assign(defaultState(), parsed));
       // Don't overwrite shields:0 from old saves with default 1 if they had 0 intentionally
       if (parsed && Object.prototype.hasOwnProperty.call(parsed, 'shields')) {
         s.shields = parsed.shields;
@@ -2045,7 +2063,7 @@
       } catch (e) {
         /* ignore */
       }
-      const merged = Object.assign(defaultState(), fromIdb);
+      const merged = migrateState(Object.assign(defaultState(), fromIdb));
       if (Object.prototype.hasOwnProperty.call(fromIdb, 'shields')) {
         merged.shields = fromIdb.shields;
       }
@@ -2386,7 +2404,7 @@
         }
         if (missed > 0) {
           if (state.streak > 0) {
-            toast('Quest streak broken… Aura and rank are safe. Rise again!');
+            toast('Quest streak broken… Aura and level are safe. Rise again!');
           }
           state.streak = 0;
         }
@@ -2491,10 +2509,10 @@
     document.getElementById('rankup-rank-label').textContent = 'Level ' + item.to;
     document.getElementById('rankup-band').textContent = band;
     document.getElementById('rankup-from').textContent =
-      'Rose from Level ' + item.from + (titleChanged ? ' · New title!' : '');
+      'Rose from Level ' + item.from + (titleChanged ? ' · New rank!' : '');
     document.getElementById('rankup-sub').textContent = titleChanged
       ? 'New standing in the Order: ' + band.replace(' of the Order', '') + '.'
-      : 'Your Aura has lifted you higher. Keep training, knight.';
+      : 'Your Aura has lifted you higher. Keep training.';
 
     document.getElementById('rankup-bg').classList.add('open');
 
@@ -3840,7 +3858,7 @@
           : '') +
         '.</p>' +
         '<p style="margin-bottom:10px;line-height:1.5">Miss a day and the streak can drop — but you get <strong class="gold">1 free grace day</strong>, then <strong class="gold">Shields</strong> can save it.</p>' +
-        '<p class="muted" style="font-size:0.85rem;line-height:1.45">Aura and rank are never wiped when a streak breaks — only the streak counter.</p>';
+        '<p class="muted" style="font-size:0.85rem;line-height:1.45">Aura and level are never wiped when a streak breaks — only the streak counter.</p>';
     } else if (kind === 'mult') {
       title = 'Multiplier';
       body =
