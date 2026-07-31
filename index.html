@@ -1292,6 +1292,43 @@
     return 1;
   }
 
+  /** Aura awarded when today's 3rd bout completes (Day Conquered). */
+  function previewDayAura() {
+    const today = todayKey();
+    if (state.boutsToday >= 3 && state.lastConqueredDay === today) {
+      const mult = streakMultiplier(state.streak);
+      return {
+        already: true,
+        streak: state.streak,
+        mult,
+        gain: Math.round(AURA_BASE * mult),
+      };
+    }
+    let nextStreak = 1;
+    if (state.lastConqueredDay) {
+      const gap = daysBetween(state.lastConqueredDay, today);
+      if (gap === 0) nextStreak = Math.max(1, state.streak);
+      else if (gap === 1) nextStreak = state.streak + 1;
+      else nextStreak = 1;
+    }
+    const mult = streakMultiplier(nextStreak);
+    return {
+      already: false,
+      streak: nextStreak,
+      mult,
+      gain: Math.round(AURA_BASE * mult),
+    };
+  }
+
+  function formatAuraLabel(preview) {
+    if (preview.already) {
+      return '+' + preview.gain + ' Aura claimed today';
+    }
+    const multTxt =
+      preview.mult === 1 ? '' : ' · ' + preview.mult + '× streak';
+    return '+' + preview.gain + ' Aura on Day Conquered' + multTxt;
+  }
+
   function rankFromAura(aura) {
     let rank = 1;
     for (let r = RANK_AURA.length; r >= 1; r--) {
@@ -1464,6 +1501,23 @@
       .map((i) => `<div class="bout-pip${state.boutsToday > i ? ' done' : ''}">${state.boutsToday > i ? '⚔️' : '·'}</div>`)
       .join('');
 
+    const auraPrev = previewDayAura();
+    let auraHint = document.getElementById('hall-aura-hint');
+    if (!auraHint) {
+      auraHint = document.createElement('p');
+      auraHint.id = 'hall-aura-hint';
+      auraHint.className = 'muted';
+      auraHint.style.cssText = 'margin-top:10px;font-size:0.8rem';
+      document.getElementById('hall-bouts').insertAdjacentElement('afterend', auraHint);
+    }
+    auraHint.innerHTML = conquered
+      ? '<span class="gold">' + formatAuraLabel(auraPrev) + '</span>'
+      : 'Finish all 3 bouts for <span class="gold">+' +
+        auraPrev.gain +
+        ' Aura</span> (100 base' +
+        (auraPrev.mult > 1 ? ' × ' + auraPrev.mult + ' streak' : '') +
+        ')';
+
     const btn = document.getElementById('btn-start-bout');
     if (conquered) {
       btn.textContent = 'Day Conquered — Rest, knight';
@@ -1568,6 +1622,30 @@
     document.getElementById('bout-video').innerHTML = renderVideoHtml(drill.video);
     document.getElementById('bout-drill-steps').innerHTML = drill.steps.map((s) => '<li>' + s + '</li>').join('');
     document.getElementById('bout-counsel').textContent = "Knight’s counsel: " + drill.counsel;
+
+    const auraPrev = previewDayAura();
+    let auraEl = document.getElementById('bout-aura-reward');
+    if (!auraEl) {
+      auraEl = document.createElement('p');
+      auraEl.id = 'bout-aura-reward';
+      auraEl.style.cssText =
+        'margin-top:12px;padding:8px 10px;border-radius:8px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.35);font-size:0.85rem;font-weight:600;color:var(--royal)';
+      document.getElementById('bout-counsel').insertAdjacentElement('afterend', auraEl);
+    }
+    if (auraPrev.already) {
+      auraEl.textContent = 'Aura: ' + formatAuraLabel(auraPrev);
+    } else {
+      const left = Math.max(0, 3 - state.boutsToday);
+      auraEl.innerHTML =
+        'Aura reward: <strong>+' +
+        auraPrev.gain +
+        '</strong> when you conquer the day' +
+        (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
+        (left > 0
+          ? ' · ' + left + ' bout' + (left === 1 ? '' : 's') + ' left today'
+          : '');
+    }
+
     resetTimer();
   }
 
@@ -1749,6 +1827,7 @@
 
   function renderScrolls() {
     const rank = rankFromAura(state.aura);
+    const auraPrev = previewDayAura();
     const filters = document.getElementById('scroll-filters');
     filters.innerHTML =
       '<button type="button" class="chip' +
@@ -1766,7 +1845,16 @@
       ).join('');
 
     const list = document.getElementById('scroll-list');
-    let html = '';
+    let html =
+      '<p class="muted" style="margin-bottom:12px;font-size:0.85rem">Each scroll is a Training Bout. Finish <strong class="gold">3 bouts today</strong> to earn <strong class="gold">+' +
+      auraPrev.gain +
+      ' Aura</strong>' +
+      (auraPrev.already
+        ? ' <span class="gold">(already claimed today)</span>'
+        : auraPrev.mult > 1
+          ? ' <span class="gold">(' + auraPrev.mult + '× streak)</span>'
+          : ' (100 base Aura)') +
+      '.</p>';
     for (const path of PATHS) {
       if (scrollFilter !== 'all' && scrollFilter !== path.id) continue;
       const unlocked = pathUnlocked(path, rank);
@@ -1775,6 +1863,19 @@
         (unlocked ? '' : ' <span class="path-lock">🔒 Rank ' + path.unlockRank + '</span>') +
         '</p>';
       for (const d of path.drills) {
+        const t = d.timing || {};
+        let timeHint = '';
+        if (t.workSec && t.rounds) {
+          timeHint =
+            t.workSec +
+            's work / ' +
+            (t.restSec || 0) +
+            's rest × ' +
+            t.rounds;
+        } else if (t.segments) {
+          const total = t.segments.reduce((s, x) => s + (x.sec || 0), 0);
+          timeHint = Math.round(total / 60) + ' min timed';
+        }
         html +=
           '<button type="button" class="list-item' +
           (unlocked ? '' : ' locked') +
@@ -1783,13 +1884,30 @@
           ':' +
           d.id +
           '">' +
-          '<div style="display:flex;justify-content:space-between;gap:8px"><strong>' +
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong>' +
           d.title +
           '</strong>' +
-          (unlocked ? '<span class="tag">Open</span>' : '<span class="tag">Locked</span>') +
+          '<span class="tag" style="flex-shrink:0">' +
+          (unlocked
+            ? auraPrev.already
+              ? 'Done today'
+              : '+' + auraPrev.gain + ' Aura'
+            : 'Locked') +
+          '</span>' +
           '</div><p class="muted" style="margin-top:4px;font-size:0.8rem">' +
           d.setup +
-          '</p></button>';
+          (timeHint
+            ? ' · ' + timeHint
+            : '') +
+          '</p>' +
+          (unlocked && !auraPrev.already
+            ? '<p class="gold" style="margin-top:6px;font-size:0.75rem;font-weight:600">Day Conquered reward: +' +
+              auraPrev.gain +
+              ' Aura' +
+              (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
+              ' after 3 bouts</p>'
+            : '') +
+          '</button>';
       }
       html += '</div>';
     }
@@ -1805,6 +1923,7 @@
       toast('Locked until Rank ' + path.unlockRank);
       return;
     }
+    const auraPrev = previewDayAura();
     openModal(
       '<h2 style="color:var(--gold-bright);margin-bottom:4px">' +
         drill.title +
@@ -1813,6 +1932,15 @@
         path.name +
         ' · ' +
         drill.setup +
+        '</p>' +
+        '<p class="gold" style="margin-bottom:12px;font-size:0.85rem;font-weight:600">' +
+        (auraPrev.already
+          ? formatAuraLabel(auraPrev)
+          : 'Day Conquered: +' +
+            auraPrev.gain +
+            ' Aura' +
+            (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
+            ' after 3 bouts today') +
         '</p>' +
         '<div class="video-wrap">' +
         renderVideoHtml(drill.video) +
