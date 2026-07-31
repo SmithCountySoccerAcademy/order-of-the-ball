@@ -642,7 +642,7 @@
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
             <li>Ranks 1–99 · titles · streaks · shields</li>
-            <li>Squire → Legend ball mastery paths &amp; scrolls</li>
+            <li>Squire → Grandmaster rank scrolls · growing library</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
         </div>
@@ -765,8 +765,8 @@
         </div>
 
         <div class="card">
-          <h2 style="font-size:1rem;color:var(--gold);margin-bottom:8px">Ball Mastery Path</h2>
-          <p style="font-weight:600" id="hall-path-name">Squire Path</p>
+          <h2 style="font-size:1rem;color:var(--gold);margin-bottom:8px">Ball Mastery</h2>
+          <p style="font-weight:600" id="hall-path-name">Squire</p>
           <p class="muted" style="margin-top:4px;font-size:0.85rem" id="hall-path-focus">Foundation footwork</p>
           <button type="button" class="btn btn-royal" style="margin-top:12px" id="btn-hall-scrolls">Open Scrolls</button>
         </div>
@@ -806,7 +806,7 @@
     <section class="screen" id="screen-scrolls">
       <div class="screen-scroll">
         <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:4px">📜 Scrolls</h1>
-        <p class="muted" style="margin-bottom:12px">Tap a path to expand its scrolls. Completed scrolls can be replayed for more Aura.</p>
+        <p class="muted" style="margin-bottom:12px">Tap a rank title to expand its scrolls. Completed scrolls can be replayed for more Aura.</p>
         <div id="scroll-list"></div>
       </div>
     </section>
@@ -828,7 +828,7 @@
           </div>
         </div>
         <div class="card" style="margin-bottom:12px">
-          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Paths of Mastery</h3>
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Rank</h3>
           <div class="list" id="rank-paths"></div>
         </div>
         <div class="card">
@@ -928,7 +928,7 @@
    * Design goals:
    * - Early ranks feel rewarding (love the ball / form the habit)
    * - ~15 min/day (3 short Squire bouts) is enough to progress
-   * - Advanced paths unlock with rank and pay more Aura (skill + reward)
+   * - Higher rank titles unlock more scrolls and pay more Aura
    * - Grandmaster (97–99) is a long, serious journey — not a weekend grind
    */
   const AURA_DAY_BONUS_BASE = 50; // × streak mult on 3rd bout of the day
@@ -1122,25 +1122,45 @@
   })();
 
   /**
-   * timing:
-   *   workSec / restSec / rounds  → interval blocks (rest between rounds)
-   *   OR segments: [{ type:'work'|'rest', sec, label?, round?, rounds? }]
+   * ═══════════════════════════════════════════════════════════════════
+   * SCROLL LIBRARY — one block per rank title
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * Display name = rank title only (Squire, Knight, …) — not "X Path".
+   * Each rank holds every scroll unlocked when you reach that title.
+   * unlockRank matches the title ladder in rankBand().
+   *
+   * HOW TO ADD A SCROLL (easiest):
+   *   1. Find the rank block by title (e.g. "Squire")
+   *   2. Copy any scroll object inside its scrolls: [ ... ] array
+   *   3. Give it a unique id within that rank (e.g. 'sq5', 'kn5')
+   *   4. Fill title, setup, steps[], counsel
+   *   5. Optional: video (YouTube/Vimeo/mp4 URL), timing
+   *
+   * HOW TO ADD A NEW RANK SHELL:
+   *   Copy an empty block, set id (stable forever), title, unlockRank,
+   *   auraReward, focus, scrolls: []
+   *
+   * timing options:
+   *   { workSec, restSec, rounds }  → interval blocks
+   *   { segments: [{ type:'work'|'rest', sec, label? }] }
+   *
+   * Save keys use "{id}:{scrollId}" (e.g. squire:sq1) — never rename ids.
+   * ═══════════════════════════════════════════════════════════════════
    */
-  const PATHS = [
+  const RANK_SCROLLS = [
     {
       id: 'squire',
-      name: 'Squire Path',
+      title: 'Squire',
       unlockRank: 1,
-      /** Aura per completed scroll on this path */
       auraReward: 35,
       focus: 'Love the ball · foundation footwork',
-      drills: [
+      scrolls: [
         {
           id: 'sq1',
           title: 'Toe Taps of the Gate',
           setup: 'One ball · 5×5 · stay light on your feet · ~5 min',
           video: '',
-          // 20s work + 10s rest × 10 rounds ≈ 4:50
           timing: { workSec: 20, restSec: 10, rounds: 10 },
           steps: [
             'Place the ball at the center of your 5×5.',
@@ -1192,15 +1212,16 @@
           ],
           counsel: 'Curves forge champions. Straight lines are for peasants who never turn.',
         },
+        // → paste more Squire scrolls above this comment
       ],
     },
     {
       id: 'knight',
-      name: 'Knight Path',
-      unlockRank: 8,
+      title: 'Knight',
+      unlockRank: 10,
       auraReward: 50,
       focus: 'Combinations & close control',
-      drills: [
+      scrolls: [
         {
           id: 'kn1',
           title: 'Push-Pull Combos',
@@ -1269,15 +1290,26 @@
           ],
           counsel: 'A cornered knight turns sharper. Practice the edge until it feels like open field.',
         },
+        // → paste more Knight scrolls above this comment
+      ],
+    },
+    {
+      id: 'guardian',
+      title: 'Guardian',
+      unlockRank: 30,
+      auraReward: 60,
+      focus: 'Shield the ball · body shape & pressure',
+      scrolls: [
+        // → add Guardian scrolls here
       ],
     },
     {
       id: 'champion',
-      name: 'Champion Path',
-      unlockRank: 20,
+      title: 'Champion',
+      unlockRank: 40,
       auraReward: 70,
       focus: 'Speed, weak foot & competitive edge',
-      drills: [
+      scrolls: [
         {
           id: 'ch1',
           title: 'Weak-Foot Gauntlet',
@@ -1360,15 +1392,16 @@
           ],
           counsel: 'The champion’s mind arrives before the feet. Train the call.',
         },
+        // → paste more Champion scrolls above this comment
       ],
     },
     {
       id: 'legend',
-      name: 'Legend Path',
-      unlockRank: 35,
+      title: 'Legend',
+      unlockRank: 55,
       auraReward: 95,
       focus: 'Eyes-up mastery, flow & game vision',
-      drills: [
+      scrolls: [
         {
           id: 'lg1',
           title: 'Eyes to the Horizon',
@@ -1430,7 +1463,57 @@
           ],
           counsel: 'In silence the Order speaks. Listen with your feet.',
         },
+        // → paste more Legend scrolls above this comment
       ],
+    },
+    // —— Higher titles: empty shells ready for the vast library ——
+    {
+      id: 'high_legend',
+      title: 'High Legend',
+      unlockRank: 63,
+      auraReward: 110,
+      focus: 'Game craft · tempo & decision',
+      scrolls: [],
+    },
+    {
+      id: 'sage',
+      title: 'Sage',
+      unlockRank: 70,
+      auraReward: 125,
+      focus: 'Wisdom of touch · economy of motion',
+      scrolls: [],
+    },
+    {
+      id: 'high_sage',
+      title: 'High Sage',
+      unlockRank: 77,
+      auraReward: 140,
+      focus: 'Teaching the feet · perfect reps',
+      scrolls: [],
+    },
+    {
+      id: 'sentinel',
+      title: 'Sentinel',
+      unlockRank: 83,
+      auraReward: 160,
+      focus: 'Watchful mastery · pressure under eyes',
+      scrolls: [],
+    },
+    {
+      id: 'paragon',
+      title: 'Paragon',
+      unlockRank: 90,
+      auraReward: 180,
+      focus: 'Exemplar skill · zero waste',
+      scrolls: [],
+    },
+    {
+      id: 'grandmaster',
+      title: 'Grandmaster',
+      unlockRank: 97,
+      auraReward: 200,
+      focus: 'The Order complete · pure ball love',
+      scrolls: [],
     },
   ];
 
@@ -1770,22 +1853,24 @@
     return 1;
   }
 
-  function getPathById(pathId) {
-    return PATHS.find((p) => p.id === pathId) || null;
+  function getRankGroup(rankId) {
+    return RANK_SCROLLS.find((p) => p.id === rankId) || null;
   }
 
-  /** Aura for completing a scroll on this path (higher paths pay more). */
-  function getScrollAura(pathId) {
-    const path = getPathById(pathId);
-    if (path && path.auraReward) return path.auraReward;
+  /** Aura for completing a scroll under this rank title (higher ranks pay more). */
+  function getScrollAura(rankId) {
+    const group = getRankGroup(rankId);
+    if (group && group.auraReward) return group.auraReward;
     return AURA_PER_BOUT_DEFAULT;
   }
 
-  /** Typical bout Aura for UI estimates (best unlocked path average / squire). */
+  /** Typical bout Aura for UI estimates (avg of unlocked ranks that have scrolls). */
   function typicalBoutAura() {
     if (!state) return AURA_PER_BOUT_DEFAULT;
     const rank = rankFromAura(state.aura);
-    const unlocked = PATHS.filter((p) => pathUnlocked(p, rank));
+    const unlocked = RANK_SCROLLS.filter(
+      (p) => rankGroupUnlocked(p, rank) && p.scrolls && p.scrolls.length
+    );
     if (!unlocked.length) return AURA_PER_BOUT_DEFAULT;
     const sum = unlocked.reduce((s, p) => s + (p.auraReward || AURA_PER_BOUT_DEFAULT), 0);
     return Math.round(sum / unlocked.length);
@@ -1793,7 +1878,7 @@
 
   /**
    * Aura economy:
-   * - Every scroll: path.auraReward
+   * - Every scroll: rank group's auraReward
    * - Day Conquered (3rd bout): AURA_DAY_BONUS_BASE × streak mult
    */
   function previewAura(pathId) {
@@ -1875,16 +1960,32 @@
     return { rank, cur, next, into, span, pct: Math.min(100, (into / span) * 100), maxed: false };
   }
 
-  function pathUnlocked(path, rank) {
-    return rank >= path.unlockRank;
+  function rankGroupUnlocked(group, rank) {
+    return rank >= group.unlockRank;
   }
 
-  function highestUnlockedPath(rank) {
-    let p = PATHS[0];
-    for (const path of PATHS) {
-      if (pathUnlocked(path, rank)) p = path;
+  /** Highest unlocked rank title (may have empty scrolls[]). */
+  function highestUnlockedGroup(rank) {
+    let p = RANK_SCROLLS[0];
+    for (const group of RANK_SCROLLS) {
+      if (rankGroupUnlocked(group, rank)) p = group;
     }
     return p;
+  }
+
+  /** Highest unlocked rank that actually has scrolls (for random bouts). */
+  function highestUnlockedWithScrolls(rank) {
+    let best = null;
+    for (const group of RANK_SCROLLS) {
+      if (
+        rankGroupUnlocked(group, rank) &&
+        group.scrolls &&
+        group.scrolls.length
+      ) {
+        best = group;
+      }
+    }
+    return best || RANK_SCROLLS[0];
   }
 
   function ensureDayBoundary() {
@@ -2066,7 +2167,7 @@
   function renderHall() {
     ensureDayBoundary();
     const rank = rankFromAura(state.aura);
-    const path = highestUnlockedPath(rank);
+    const path = highestUnlockedGroup(rank);
     const prog = auraProgress(state.aura);
     document.getElementById('hall-emblem').textContent = state.emblem;
     document.getElementById('hall-name').textContent = state.name;
@@ -2171,15 +2272,22 @@
       document.getElementById('hall-title-meta').textContent = 'You are Unbreakable';
     }
 
-    document.getElementById('hall-path-name').textContent = path.name;
-    document.getElementById('hall-path-focus').textContent = path.focus + ' · unlocks higher paths as you rise';
+    document.getElementById('hall-path-name').textContent = path.title;
+    document.getElementById('hall-path-focus').textContent =
+      path.focus + ' · new rank scrolls unlock as you rise';
   }
 
   function pickDrill() {
     const rank = rankFromAura(state.aura);
-    const path = highestUnlockedPath(rank);
-    const drills = path.drills;
-    // Prefer scrolls not yet completed on this path
+    const path = highestUnlockedWithScrolls(rank);
+    const drills = path.scrolls || [];
+    if (!drills.length) {
+      return {
+        path: RANK_SCROLLS[0],
+        drill: RANK_SCROLLS[0].scrolls[0],
+      };
+    }
+    // Prefer scrolls not yet completed at this rank
     const incomplete = drills.filter((d) => !isScrollCompleted(path.id, d.id));
     const pool = incomplete.length ? incomplete : drills;
     const i = state.totalBouts % pool.length;
@@ -2250,7 +2358,7 @@
       activeDrill = picked;
     }
     const { path, drill } = activeDrill;
-    document.getElementById('bout-path-tag').textContent = path.name;
+    document.getElementById('bout-path-tag').textContent = path.title;
     document.getElementById('bout-drill-title').textContent = drill.title;
     document.getElementById('bout-drill-setup').textContent = drill.setup;
     document.getElementById('bout-video').innerHTML = renderVideoHtml(drill.video);
@@ -2502,22 +2610,28 @@
     const rank = rankFromAura(state.aura);
     const list = document.getElementById('scroll-list');
 
-    // Default: expand highest unlocked path once
-    const top = highestUnlockedPath(rank);
+    // Default: expand highest unlocked rank with scrolls (or highest unlocked)
+    const top =
+      highestUnlockedWithScrolls(rank) || highestUnlockedGroup(rank);
     if (!Object.keys(scrollExpanded).length && top) {
       scrollExpanded[top.id] = true;
     }
 
     let html =
-      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Each path develops a skill theme. Higher paths pay more Aura.</p>';
+      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Each rank title unlocks its own scrolls. Higher ranks pay more Aura.</p>';
 
-    for (const path of PATHS) {
-      const unlocked = pathUnlocked(path, rank);
+    for (const path of RANK_SCROLLS) {
+      const unlocked = rankGroupUnlocked(path, rank);
       const open = Boolean(scrollExpanded[path.id]);
-      const doneCount = path.drills.filter((d) =>
+      const scrolls = path.scrolls || [];
+      const doneCount = scrolls.filter((d) =>
         isScrollCompleted(path.id, d.id)
       ).length;
       const pathAura = getScrollAura(path.id);
+      const countLabel =
+        scrolls.length === 0
+          ? 'library expanding…'
+          : doneCount + '/' + scrolls.length + ' done';
 
       html +=
         '<div class="path-accordion' +
@@ -2531,7 +2645,7 @@
         '">' +
         '<span style="min-width:0">' +
         '<span style="display:block;font-family:var(--display);font-weight:700;color:var(--gold-bright)">' +
-        path.name +
+        path.title +
         '</span>' +
         '<span class="muted" style="font-size:0.75rem;display:block;margin-top:3px">' +
         (unlocked
@@ -2539,11 +2653,8 @@
             ' · +' +
             pathAura +
             ' Aura · ' +
-            doneCount +
-            '/' +
-            path.drills.length +
-            ' done'
-          : '🔒 Unlocks at Rank ' + path.unlockRank + ' · ' + path.focus) +
+            countLabel
+          : '🔒 Rank ' + path.unlockRank + ' · ' + path.focus) +
         '</span></span>' +
         '<span class="chev">▶</span>' +
         '</button>' +
@@ -2553,9 +2664,14 @@
         html +=
           '<p class="muted" style="font-size:0.85rem;padding:8px 4px;line-height:1.45">Sealed until Rank <strong class="gold">' +
           path.unlockRank +
-          '</strong>. Rise through training to open these scrolls.</p>';
+          '</strong> (' +
+          path.title +
+          '). Rise through training to open these scrolls.</p>';
+      } else if (!scrolls.length) {
+        html +=
+          '<p class="muted" style="font-size:0.85rem;padding:8px 4px;line-height:1.45">No scrolls here yet — the library is growing. Keep training lower ranks for Aura.</p>';
       } else {
-        for (const d of path.drills) {
+        for (const d of scrolls) {
           const done = isScrollCompleted(path.id, d.id);
           const times =
             state.completedScrolls &&
@@ -2614,11 +2730,11 @@
   }
 
   function openDrillModal(pathId, drillId) {
-    const path = PATHS.find((p) => p.id === pathId);
-    const drill = path && path.drills.find((d) => d.id === drillId);
+    const path = getRankGroup(pathId);
+    const drill = path && (path.scrolls || []).find((d) => d.id === drillId);
     if (!path || !drill) return;
     const rank = rankFromAura(state.aura);
-    if (!pathUnlocked(path, rank)) {
+    if (!rankGroupUnlocked(path, rank)) {
       toast('Locked until Rank ' + path.unlockRank);
       return;
     }
@@ -2631,7 +2747,7 @@
         drill.title +
         '</h2>' +
         '<p class="muted" style="margin-bottom:10px">' +
-        path.name +
+        path.title +
         ' · ' +
         drill.setup +
         (done ? ' · <span class="gold">Completed before</span>' : '') +
@@ -2695,20 +2811,21 @@
     }
     document.getElementById('rank-aura-bar').style.width = prog.pct + '%';
 
-    document.getElementById('rank-paths').innerHTML = PATHS.map((p) => {
-      const ok = pathUnlocked(p, prog.rank);
+    document.getElementById('rank-paths').innerHTML = RANK_SCROLLS.map((p) => {
+      const ok = rankGroupUnlocked(p, prog.rank);
+      const n = (p.scrolls || []).length;
       return (
         '<div class="list-item' +
         (ok ? '' : ' locked') +
         '"><strong>' +
-        p.name +
+        p.title +
         '</strong> ' +
         (ok ? '<span class="tag">Unlocked</span>' : '<span class="tag">Rank ' + p.unlockRank + '</span>') +
         '<p class="muted" style="margin-top:4px;font-size:0.8rem">' +
         p.focus +
         ' · ' +
-        p.drills.length +
-        ' scrolls · +' +
+        (n ? n + ' scrolls' : 'scrolls coming') +
+        ' · +' +
         (p.auraReward || AURA_PER_BOUT_DEFAULT) +
         ' Aura each</p></div>'
       );
@@ -3027,9 +3144,9 @@
       title.textContent = 'Rise to Squire';
       const need = auraNeededForRank(2);
       body.innerHTML =
-        'You have proven the path.<br><br>' +
+        'You have proven yourself.<br><br>' +
         'We grant you enough <strong class="gold">Aura</strong> to leave Page behind and stand as a <strong class="gold">Squire of the Order</strong> (Rank 2).<br><br>' +
-        'From the Hall: train 3 bouts a day, open Scrolls, and climb toward Knight and beyond.';
+        'From the Hall: train 3 bouts a day, open Scrolls by rank, and climb toward Knight and beyond.';
       card.style.display = '';
       card.innerHTML =
         '<p class="gold" style="font-weight:700;text-align:center">+' +
@@ -3228,7 +3345,7 @@
     } else if (kind === 'mult') {
       title = 'Multiplier';
       body =
-        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura only (each scroll still pays its path Aura: Squire +35, Knight +50, Champion +70, Legend +95).</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura only (each scroll still pays its rank Aura: Squire +35, Knight +50, Champion +70, Legend +95, …).</p>' +
         '<p style="margin-bottom:10px;line-height:1.5">Your streak is <strong class="gold">' +
         streak +
         '</strong> → multiplier <strong class="gold">' +
