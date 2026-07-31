@@ -737,7 +737,8 @@
 
   const STORAGE_KEY = 'orderOfTheBall_v1';
   const UNLOCK_KEY = 'orderOfTheBall_unlock_v1';
-  const AURA_BASE = 100;
+  const AURA_PER_BOUT = 40; // each completed scroll / Training Bout
+  const AURA_DAY_BONUS_BASE = 40; // extra when all 3 bouts done (× streak mult)
 
   function apiUrl(path) {
     const base = (CONFIG.API_BASE || '').replace(/\/$/, '');
@@ -1512,41 +1513,74 @@
     return 1;
   }
 
-  /** Aura awarded when today's 3rd bout completes (Day Conquered). */
-  function previewDayAura() {
+  /** Projected streak if the player conquers today (for day-bonus preview). */
+  function projectedStreakIfConquerToday() {
     const today = todayKey();
     if (state.boutsToday >= 3 && state.lastConqueredDay === today) {
-      const mult = streakMultiplier(state.streak);
-      return {
-        already: true,
-        streak: state.streak,
-        mult,
-        gain: Math.round(AURA_BASE * mult),
-      };
+      return state.streak;
     }
-    let nextStreak = 1;
     if (state.lastConqueredDay) {
       const gap = daysBetween(state.lastConqueredDay, today);
-      if (gap === 0) nextStreak = Math.max(1, state.streak);
-      else if (gap === 1) nextStreak = state.streak + 1;
-      else nextStreak = 1;
+      if (gap === 0) return Math.max(1, state.streak);
+      if (gap === 1) return state.streak + 1;
     }
-    const mult = streakMultiplier(nextStreak);
+    return 1;
+  }
+
+  /**
+   * Aura economy:
+   * - Every scroll/bout: +AURA_PER_BOUT
+   * - Day Conquered (3rd bout): +AURA_DAY_BONUS_BASE × streak mult
+   */
+  function previewAura() {
+    const today = todayKey();
+    const already =
+      state.boutsToday >= 3 && state.lastConqueredDay === today;
+    const streak = already ? state.streak : projectedStreakIfConquerToday();
+    const mult = streakMultiplier(streak);
+    const dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
+    const boutsLeft = already ? 0 : Math.max(0, 3 - state.boutsToday);
+    const boutGainsLeft = boutsLeft * AURA_PER_BOUT;
+    const dayBonusLeft = already ? 0 : dayBonus;
     return {
-      already: false,
-      streak: nextStreak,
+      already,
+      streak,
       mult,
-      gain: Math.round(AURA_BASE * mult),
+      perBout: AURA_PER_BOUT,
+      dayBonus,
+      /** Total still available if they finish remaining bouts + day bonus today */
+      remainingToday: boutGainsLeft + dayBonusLeft,
+      /** Full day if starting fresh: 3 bouts + day bonus */
+      fullDayTotal: AURA_PER_BOUT * 3 + dayBonus,
+    };
+  }
+
+  // Back-compat alias used in older UI calls
+  function previewDayAura() {
+    const p = previewAura();
+    return {
+      already: p.already,
+      streak: p.streak,
+      mult: p.mult,
+      gain: p.already ? p.dayBonus : p.remainingToday,
+      perBout: p.perBout,
+      dayBonus: p.dayBonus,
+      fullDayTotal: p.fullDayTotal,
     };
   }
 
   function formatAuraLabel(preview) {
     if (preview.already) {
-      return '+' + preview.gain + ' Aura claimed today';
+      return 'Quest complete today · +' + preview.perBout + ' Aura per bout next time';
     }
-    const multTxt =
-      preview.mult === 1 ? '' : ' · ' + preview.mult + '× streak';
-    return '+' + preview.gain + ' Aura on Day Conquered' + multTxt;
+    return (
+      '+' +
+      preview.perBout +
+      ' Aura per bout · +' +
+      preview.dayBonus +
+      ' day bonus' +
+      (preview.mult > 1 ? ' (' + preview.mult + '×)' : '')
+    );
   }
 
   function rankFromAura(aura) {
@@ -1740,7 +1774,7 @@
       .map((i) => `<div class="bout-pip${state.boutsToday > i ? ' done' : ''}">${state.boutsToday > i ? '⚔️' : '·'}</div>`)
       .join('');
 
-    const auraPrev = previewDayAura();
+    const auraPrev = previewAura();
     let auraHint = document.getElementById('hall-aura-hint');
     if (!auraHint) {
       auraHint = document.createElement('p');
@@ -1750,20 +1784,30 @@
       document.getElementById('hall-bouts').insertAdjacentElement('afterend', auraHint);
     }
     auraHint.innerHTML = conquered
-      ? '<span class="gold">' + formatAuraLabel(auraPrev) + '</span>'
-      : 'Finish all 3 bouts for <span class="gold">+' +
-        auraPrev.gain +
-        ' Aura</span> (100 base' +
-        (auraPrev.mult > 1 ? ' × ' + auraPrev.mult + ' streak' : '') +
-        ')';
+      ? '<span class="gold">+' +
+        auraPrev.perBout +
+        ' Aura per bout</span> · day bonus already claimed'
+      : 'Each bout: <span class="gold">+' +
+        auraPrev.perBout +
+        ' Aura</span> · conquer day: <span class="gold">+' +
+        auraPrev.dayBonus +
+        ' bonus</span>' +
+        (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
+        ' · up to <span class="gold">+' +
+        auraPrev.fullDayTotal +
+        '</span> today';
 
     const btn = document.getElementById('btn-start-bout');
+    btn.disabled = false;
     if (conquered) {
-      btn.textContent = 'Day Conquered — Rest, knight';
-      btn.disabled = true;
+      btn.textContent = 'Extra practice (+' + AURA_PER_BOUT + ' Aura)';
     } else {
-      btn.textContent = 'Enter Training Bout (' + (state.boutsToday + 1) + '/3)';
-      btn.disabled = false;
+      btn.textContent =
+        'Enter Training Bout (' +
+        (state.boutsToday + 1) +
+        '/3) · +' +
+        AURA_PER_BOUT +
+        ' Aura';
     }
 
     const nm = nextMilestone();
@@ -1862,7 +1906,7 @@
     document.getElementById('bout-drill-steps').innerHTML = drill.steps.map((s) => '<li>' + s + '</li>').join('');
     document.getElementById('bout-counsel').textContent = "Knight’s counsel: " + drill.counsel;
 
-    const auraPrev = previewDayAura();
+    const auraPrev = previewAura();
     let auraEl = document.getElementById('bout-aura-reward');
     if (!auraEl) {
       auraEl = document.createElement('p');
@@ -1871,17 +1915,31 @@
         'margin-top:12px;padding:8px 10px;border-radius:8px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.35);font-size:0.85rem;font-weight:600;color:var(--royal)';
       document.getElementById('bout-counsel').insertAdjacentElement('afterend', auraEl);
     }
+    const isThird = state.boutsToday === 2; // this bout will be #3
     if (auraPrev.already) {
-      auraEl.textContent = 'Aura: ' + formatAuraLabel(auraPrev);
-    } else {
-      const left = Math.max(0, 3 - state.boutsToday);
       auraEl.innerHTML =
-        'Aura reward: <strong>+' +
-        auraPrev.gain +
-        '</strong> when you conquer the day' +
+        'This scroll: <strong>+' +
+        auraPrev.perBout +
+        ' Aura</strong> when you complete the timer (quest already conquered today)';
+    } else if (isThird) {
+      auraEl.innerHTML =
+        'This scroll: <strong>+' +
+        auraPrev.perBout +
+        ' Aura</strong> + Day Conquered <strong>+' +
+        auraPrev.dayBonus +
+        '</strong>' +
         (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
+        ' = <strong>+' +
+        (auraPrev.perBout + auraPrev.dayBonus) +
+        ' Aura</strong>';
+    } else {
+      const left = Math.max(0, 3 - state.boutsToday - 1);
+      auraEl.innerHTML =
+        'This scroll: <strong>+' +
+        auraPrev.perBout +
+        ' Aura</strong> on complete' +
         (left > 0
-          ? ' · ' + left + ' bout' + (left === 1 ? '' : 's') + ' left today'
+          ? ' · then ' + left + ' more bout' + (left === 1 ? '' : 's') + ' for day bonus +' + auraPrev.dayBonus
           : '');
     }
 
@@ -2015,19 +2073,22 @@
   function completeBout() {
     if (!timer.finished) return;
     ensureDayBoundary();
-    if (state.boutsToday >= 3) {
-      toast('Today’s quest is already conquered.');
-      showScreen('hall');
-      return;
-    }
 
-    state.boutsToday += 1;
+    // Allow extra practice bouts after quest is done — still earn per-scroll Aura
+    const questAlreadyDone =
+      state.boutsToday >= 3 && state.lastConqueredDay === todayKey();
+
+    state.boutsToday = Math.min(3, state.boutsToday + 1);
+    // Track raw completions even after 3 for totalBouts
     state.totalBouts += 1;
     state.boutDay = todayKey();
 
-    let msg = '⚔️ Bout ' + state.boutsToday + ' of 3 complete!';
+    // Always grant Aura for finishing a scroll
+    const boutGain = AURA_PER_BOUT;
+    state.aura += boutGain;
+    let msg = '⚔️ Scroll complete! +' + boutGain + ' Aura';
 
-    if (state.boutsToday === 3) {
+    if (!questAlreadyDone && state.boutsToday === 3) {
       const today = todayKey();
       if (state.lastConqueredDay !== today) {
         if (state.lastConqueredDay && daysBetween(state.lastConqueredDay, today) === 1) {
@@ -2039,14 +2100,16 @@
         if (state.streak > state.bestStreak) state.bestStreak = state.streak;
 
         const mult = streakMultiplier(state.streak);
-        const gain = Math.round(AURA_BASE * mult);
-        state.aura += gain;
+        const dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
+        state.aura += dayBonus;
 
         const titles = awardMilestones();
         msg =
           '🏰 Day Conquered! +' +
-          gain +
-          ' Aura (' +
+          boutGain +
+          ' Aura (bout) +' +
+          dayBonus +
+          ' bonus (' +
           mult +
           '× streak)';
         if (titles.length) {
@@ -2054,6 +2117,13 @@
           if (titles.some((t) => t.shields)) msg += ' · Shields gained!';
         }
       }
+    } else if (questAlreadyDone) {
+      // boutsToday already 3; still count aesthetic
+      state.boutsToday = 3;
+      msg = '⚔️ Extra practice! +' + boutGain + ' Aura';
+    } else {
+      msg +=
+        ' · Bout ' + state.boutsToday + '/3 · ' + (3 - state.boutsToday) + ' left for day bonus';
     }
 
     save();
@@ -2085,15 +2155,15 @@
 
     const list = document.getElementById('scroll-list');
     let html =
-      '<p class="muted" style="margin-bottom:12px;font-size:0.85rem">Each scroll is a Training Bout. Finish <strong class="gold">3 bouts today</strong> to earn <strong class="gold">+' +
-      auraPrev.gain +
-      ' Aura</strong>' +
-      (auraPrev.already
-        ? ' <span class="gold">(already claimed today)</span>'
-        : auraPrev.mult > 1
-          ? ' <span class="gold">(' + auraPrev.mult + '× streak)</span>'
-          : ' (100 base Aura)') +
-      '.</p>';
+      '<p class="muted" style="margin-bottom:12px;font-size:0.85rem">Each scroll you finish grants <strong class="gold">+' +
+      auraPrev.perBout +
+      ' Aura</strong>. Complete <strong class="gold">3 bouts</strong> for an extra <strong class="gold">+' +
+      auraPrev.dayBonus +
+      ' day bonus</strong>' +
+      (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
+      ' (up to <strong class="gold">+' +
+      auraPrev.fullDayTotal +
+      '</strong> / day).</p>';
     for (const path of PATHS) {
       if (scrollFilter !== 'all' && scrollFilter !== path.id) continue;
       const unlocked = pathUnlocked(path, rank);
@@ -2127,11 +2197,7 @@
           d.title +
           '</strong>' +
           '<span class="tag" style="flex-shrink:0">' +
-          (unlocked
-            ? auraPrev.already
-              ? 'Done today'
-              : '+' + auraPrev.gain + ' Aura'
-            : 'Locked') +
+          (unlocked ? '+' + auraPrev.perBout + ' Aura' : 'Locked') +
           '</span>' +
           '</div><p class="muted" style="margin-top:4px;font-size:0.8rem">' +
           d.setup +
@@ -2139,12 +2205,16 @@
             ? ' · ' + timeHint
             : '') +
           '</p>' +
-          (unlocked && !auraPrev.already
-            ? '<p class="gold" style="margin-top:6px;font-size:0.75rem;font-weight:600">Day Conquered reward: +' +
-              auraPrev.gain +
+          (unlocked
+            ? '<p class="gold" style="margin-top:6px;font-size:0.75rem;font-weight:600">Complete this scroll: +' +
+              auraPrev.perBout +
               ' Aura' +
-              (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
-              ' after 3 bouts</p>'
+              (!auraPrev.already
+                ? ' · Day bonus +' +
+                  auraPrev.dayBonus +
+                  ' after 3 bouts'
+                : ' · day bonus already claimed') +
+              '</p>'
             : '') +
           '</button>';
       }
@@ -2173,13 +2243,15 @@
         drill.setup +
         '</p>' +
         '<p class="gold" style="margin-bottom:12px;font-size:0.85rem;font-weight:600">' +
-        (auraPrev.already
-          ? formatAuraLabel(auraPrev)
-          : 'Day Conquered: +' +
-            auraPrev.gain +
-            ' Aura' +
-            (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
-            ' after 3 bouts today') +
+        'Complete scroll: +' +
+        auraPrev.perBout +
+        ' Aura' +
+        (!auraPrev.already
+          ? ' · Day bonus +' +
+            auraPrev.dayBonus +
+            (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '×)' : '') +
+            ' after 3 bouts'
+          : '') +
         '</p>' +
         '<div class="video-wrap">' +
         renderVideoHtml(drill.video) +
