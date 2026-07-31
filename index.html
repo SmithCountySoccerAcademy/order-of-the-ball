@@ -310,6 +310,108 @@
       line-height: 1.45;
     }
 
+    /* —— Celebrations (scroll complete, day conquered, etc.) —— */
+    .celeb-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(6, 8, 18, 0.82);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      pointer-events: none;
+    }
+    .celeb-bg.open {
+      display: flex !important;
+      pointer-events: auto;
+      animation: rankupFade 0.3s ease;
+    }
+    .celeb-confetti {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .celeb-piece {
+      position: absolute;
+      top: -12px;
+      width: 8px;
+      height: 12px;
+      border-radius: 2px;
+      opacity: 0.95;
+      animation: celebFall linear forwards;
+    }
+    @keyframes celebFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0.85; }
+    }
+    .celeb-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      padding: 26px 20px 20px;
+      border-radius: 18px;
+      border: 2px solid var(--gold);
+      background:
+        radial-gradient(ellipse 90% 55% at 50% 0%, rgba(212,175,55,0.28), transparent 55%),
+        linear-gradient(165deg, #1a2f7a 0%, #0c1a4d 50%, #12121a 100%);
+      box-shadow: 0 0 0 1px rgba(212,175,55,0.25), 0 20px 50px rgba(0,0,0,0.55), 0 0 48px rgba(212,175,55,0.18);
+      animation: rankupPop 0.5s cubic-bezier(0.22, 1.2, 0.36, 1);
+    }
+    .celeb-card.big {
+      border-color: #f0d78c;
+      box-shadow: 0 0 0 1px rgba(240,215,140,0.35), 0 24px 60px rgba(0,0,0,0.55), 0 0 60px rgba(212,175,55,0.28);
+    }
+    .celeb-burst {
+      font-size: 2.1rem;
+      letter-spacing: 0.12em;
+      animation: rankupPulse 1.1s ease infinite;
+    }
+    .celeb-kicker {
+      font-family: var(--display);
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      margin: 10px 0 6px;
+    }
+    .celeb-title {
+      font-family: var(--display);
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      text-shadow: 0 0 20px rgba(212,175,55,0.4);
+    }
+    .celeb-body {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: rgba(243,230,200,0.8);
+      line-height: 1.5;
+    }
+    .celeb-aura {
+      margin-top: 14px;
+      font-family: var(--display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      text-shadow: 0 0 16px rgba(212,175,55,0.35);
+    }
+    .celeb-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .celeb-tags .tag {
+      border-color: rgba(212,175,55,0.45);
+      color: var(--gold-bright);
+    }
+
     .bout-track { display: flex; gap: 8px; margin-top: 12px; }
     .bout-pip {
       flex: 1;
@@ -903,6 +1005,18 @@
       <p class="rankup-sub" id="rankup-sub">You have risen in the Order.</p>
       <p class="muted" style="margin-top:8px;font-size:0.8rem" id="rankup-from">From Level 1</p>
       <button type="button" class="btn btn-gold" style="margin-top:20px" id="btn-rankup-dismiss">Continue the quest</button>
+    </div>
+  </div>
+  <div class="celeb-bg" id="celeb-bg" role="dialog" aria-labelledby="celeb-title">
+    <div class="celeb-confetti" id="celeb-confetti" aria-hidden="true"></div>
+    <div class="celeb-card" id="celeb-card">
+      <div class="celeb-burst" id="celeb-burst">⚔️ ✨</div>
+      <p class="celeb-kicker" id="celeb-kicker">Scroll complete</p>
+      <h2 class="celeb-title" id="celeb-title">Well done!</h2>
+      <p class="celeb-body" id="celeb-body"></p>
+      <p class="celeb-aura" id="celeb-aura">+0 Aura</p>
+      <div class="celeb-tags" id="celeb-tags"></div>
+      <button type="button" class="btn btn-gold" style="margin-top:18px" id="btn-celeb-dismiss">Continue</button>
     </div>
   </div>
   <div class="toast" id="toast"></div>
@@ -1755,7 +1869,7 @@
     }, 120);
   }
 
-  /** Bout / practice finished */
+  /** Bout timer finished (intervals done) */
   function playDoneCue() {
     playTone(523, 0.1, 'sine', 0.14);
     setTimeout(function () {
@@ -1764,6 +1878,40 @@
     setTimeout(function () {
       playTone(784, 0.18, 'sine', 0.15);
     }, 220);
+  }
+
+  /** Scroll / bout claimed — cheerful fanfare */
+  function playCheerCue() {
+    playTone(523, 0.09, 'sine', 0.15);
+    setTimeout(function () {
+      playTone(659, 0.09, 'sine', 0.15);
+    }, 90);
+    setTimeout(function () {
+      playTone(784, 0.09, 'sine', 0.15);
+    }, 180);
+    setTimeout(function () {
+      playTone(1047, 0.2, 'sine', 0.16);
+    }, 280);
+  }
+
+  /** Day Conquered — bigger fanfare */
+  function playVictoryCue() {
+    playTone(392, 0.1, 'triangle', 0.14);
+    setTimeout(function () {
+      playTone(523, 0.1, 'sine', 0.15);
+    }, 100);
+    setTimeout(function () {
+      playTone(659, 0.1, 'sine', 0.15);
+    }, 200);
+    setTimeout(function () {
+      playTone(784, 0.12, 'sine', 0.16);
+    }, 300);
+    setTimeout(function () {
+      playTone(1047, 0.22, 'sine', 0.17);
+    }, 420);
+    setTimeout(function () {
+      playTone(1319, 0.18, 'sine', 0.12);
+    }, 560);
   }
 
   /** Last 3 seconds of a phase */
@@ -2486,10 +2634,111 @@
 
   let rankUpQueue = [];
   let rankUpShowing = false;
+  let celebQueue = [];
+  let celebShowing = false;
+  /** Defer level-up overlay until celebrations finish */
+  let pendingRankUp = null;
+
+  const CELEB_COLORS = [
+    '#d4af37',
+    '#f0d78c',
+    '#5b8def',
+    '#93c5fd',
+    '#fbbf24',
+    '#f472b6',
+    '#34d399',
+    '#fff7d6',
+  ];
+
+  function spawnConfetti(count) {
+    const root = document.getElementById('celeb-confetti');
+    if (!root) return;
+    root.innerHTML = '';
+    const n = Math.max(12, Math.min(48, count || 24));
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('span');
+      p.className = 'celeb-piece';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.background = CELEB_COLORS[i % CELEB_COLORS.length];
+      p.style.animationDuration = 1.4 + Math.random() * 1.6 + 's';
+      p.style.animationDelay = Math.random() * 0.35 + 's';
+      p.style.width = 6 + Math.random() * 6 + 'px';
+      p.style.height = 8 + Math.random() * 10 + 'px';
+      p.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+      root.appendChild(p);
+    }
+  }
+
+  /**
+   * Queue a celebration card.
+   * opts: { kind, kicker, title, body, auraText, tags[], big, sound: 'cheer'|'victory'|'done' }
+   */
+  function queueCelebration(opts) {
+    if (!opts) return;
+    celebQueue.push(opts);
+    pumpCelebration();
+  }
+
+  function pumpCelebration() {
+    if (celebShowing) return;
+    if (!celebQueue.length) {
+      // After all bout celebrations, show deferred level-ups
+      if (pendingRankUp) {
+        const p = pendingRankUp;
+        pendingRankUp = null;
+        celebrateRankUp(p.before, p.after);
+      }
+      return;
+    }
+    celebShowing = true;
+    const o = celebQueue.shift();
+    const card = document.getElementById('celeb-card');
+    const bg = document.getElementById('celeb-bg');
+    if (card) card.classList.toggle('big', Boolean(o.big));
+    document.getElementById('celeb-burst').textContent =
+      o.burst || (o.big ? '🏰 ⚔️ ✨ 🛡️' : '⚔️ ✨ 📜');
+    document.getElementById('celeb-kicker').textContent = o.kicker || 'Well done';
+    document.getElementById('celeb-title').textContent = o.title || 'Complete!';
+    document.getElementById('celeb-body').textContent = o.body || '';
+    document.getElementById('celeb-aura').textContent = o.auraText || '';
+    document.getElementById('celeb-aura').style.display = o.auraText
+      ? ''
+      : 'none';
+    const tags = document.getElementById('celeb-tags');
+    tags.innerHTML = (o.tags || [])
+      .map(function (t) {
+        return '<span class="tag">' + t + '</span>';
+      })
+      .join('');
+
+    spawnConfetti(o.big ? 40 : 22);
+    bg.classList.add('open');
+
+    if (o.sound === 'victory') playVictoryCue();
+    else if (o.sound === 'done') playDoneCue();
+    else playCheerCue();
+
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(o.big ? [30, 40, 30, 40, 80] : [35, 40, 55]);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function dismissCelebration() {
+    const bg = document.getElementById('celeb-bg');
+    if (bg) bg.classList.remove('open');
+    const conf = document.getElementById('celeb-confetti');
+    if (conf) conf.innerHTML = '';
+    celebShowing = false;
+    setTimeout(pumpCelebration, 220);
+  }
 
   function celebrateRankUp(fromRank, toRank) {
     if (!toRank || toRank <= fromRank) return;
-    // Queue multi-rank jumps (e.g. big Aura grants)
+    // Queue multi-level jumps (e.g. big Aura grants)
     for (let r = fromRank + 1; r <= toRank; r++) {
       rankUpQueue.push({ from: r - 1, to: r });
     }
@@ -2498,6 +2747,8 @@
 
   function pumpRankUp() {
     if (rankUpShowing || !rankUpQueue.length) return;
+    // Don't stack over a bout celebration
+    if (celebShowing) return;
     rankUpShowing = true;
     const item = rankUpQueue.shift();
     const band = rankBand(item.to);
@@ -2515,8 +2766,7 @@
       : 'Your Aura has lifted you higher. Keep training.';
 
     document.getElementById('rankup-bg').classList.add('open');
-
-    // Light haptic if available
+    playCheerCue();
     try {
       if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
     } catch (e) {
@@ -2532,12 +2782,16 @@
     }
   }
 
-  /** Call after any Aura change. Returns true if ranked up. */
-  function afterAuraChange(prevAura) {
+  /**
+   * Call after any Aura change.
+   * deferCeleb: if true, level-up waits until bout celebrations close.
+   */
+  function afterAuraChange(prevAura, deferCeleb) {
     const before = rankFromAura(prevAura);
     const after = rankFromAura(state.aura);
     if (after > before) {
-      celebrateRankUp(before, after);
+      if (deferCeleb) pendingRankUp = { before: before, after: after };
+      else celebrateRankUp(before, after);
       return true;
     }
     return false;
@@ -2969,6 +3223,11 @@
     const questAlreadyDone =
       state.boutsToday >= 3 && state.lastConqueredDay === todayKey();
 
+    const scrollTitle =
+      (activeDrill && activeDrill.drill && activeDrill.drill.title) || 'Scroll';
+    const rankLabel =
+      (activeDrill && activeDrill.path && activeDrill.path.title) || 'Order';
+
     state.boutsToday = Math.min(3, state.boutsToday + 1);
     // Track raw completions even after 3 for totalBouts
     state.totalBouts += 1;
@@ -2977,7 +3236,14 @@
     const prevAura = state.aura;
 
     // Track scroll completion (can repeat forever for more Aura)
+    let firstClear = false;
     if (activeDrill && activeDrill.path && activeDrill.drill) {
+      const sk = scrollKey(activeDrill.path.id, activeDrill.drill.id);
+      const prevCount =
+        state.completedScrolls && state.completedScrolls[sk]
+          ? state.completedScrolls[sk].count
+          : 0;
+      firstClear = prevCount === 0;
       markScrollCompleted(activeDrill.path.id, activeDrill.drill.id);
     }
 
@@ -2986,7 +3252,13 @@
       activeDrill && activeDrill.path ? activeDrill.path.id : 'initiate';
     const boutGain = getScrollAura(pathId);
     state.aura += boutGain;
-    let msg = '⚔️ Scroll complete! +' + boutGain + ' Aura';
+
+    let dayConquered = false;
+    let dayBonus = 0;
+    let mult = 1;
+    let newHonors = [];
+    let shieldsGained = 0;
+    let streakNow = state.streak;
 
     if (!questAlreadyDone && state.boutsToday === 3) {
       const today = todayKey();
@@ -2999,41 +3271,108 @@
         state.lastConqueredDay = today;
         const prevBest = state.bestStreak || 0;
         if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+        streakNow = state.streak;
 
-        const mult = streakMultiplier(state.streak);
-        const dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
+        mult = streakMultiplier(state.streak);
+        dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
         state.aura += dayBonus;
 
         const awarded = awardHonorsAndShields(prevBest);
-        msg =
-          '🏰 Day Conquered! +' +
-          boutGain +
-          ' Aura (bout) +' +
-          dayBonus +
-          ' bonus (' +
-          mult +
-          '× streak)';
-        if (awarded.newHonors.length) {
-          msg +=
-            ' · Honor: ' +
-            awarded.newHonors.map((h) => h.epithet).join(', ');
-        }
-        if (awarded.shieldsGained > 0) {
-          msg +=
-            ' · +' +
-            awarded.shieldsGained +
-            ' Streak Shield' +
-            (awarded.shieldsGained > 1 ? 's' : '') +
-            '!';
-        }
+        newHonors = awarded.newHonors || [];
+        shieldsGained = awarded.shieldsGained || 0;
+        dayConquered = true;
       }
     } else if (questAlreadyDone) {
-      // boutsToday already 3; still count aesthetic
       state.boutsToday = 3;
-      msg = '⚔️ Extra practice! +' + boutGain + ' Aura';
+    }
+
+    const totalAura = boutGain + dayBonus;
+    const left = Math.max(0, 3 - state.boutsToday);
+
+    // Build celebration(s)
+    if (dayConquered) {
+      const tags = [
+        'Bout 3 / 3',
+        streakNow + '-day streak',
+        mult > 1 ? mult + '× bonus' : null,
+      ].filter(Boolean);
+      if (firstClear) tags.push('First clear!');
+      newHonors.forEach(function (h) {
+        tags.push(h.epithet);
+      });
+      if (shieldsGained > 0) {
+        tags.push(
+          '+' + shieldsGained + ' shield' + (shieldsGained > 1 ? 's' : '')
+        );
+      }
+      queueCelebration({
+        big: true,
+        kind: 'day',
+        sound: 'victory',
+        burst: '🏰 ⚔️ ✨ 🛡️',
+        kicker: 'Day Conquered',
+        title: 'The Order salutes you!',
+        body:
+          scrollTitle +
+          ' finished the quest. Streak: ' +
+          streakNow +
+          ' day' +
+          (streakNow === 1 ? '' : 's') +
+          '.' +
+          (newHonors.length
+            ? ' New honor: ' + newHonors.map(function (h) { return h.epithet; }).join(', ') + '!'
+            : ''),
+        auraText:
+          '+' +
+          totalAura +
+          ' Aura' +
+          (dayBonus
+            ? '  (+' + boutGain + ' bout · +' + dayBonus + ' day)'
+            : ''),
+        tags: tags,
+      });
+    } else if (questAlreadyDone) {
+      queueCelebration({
+        kind: 'extra',
+        sound: 'cheer',
+        kicker: 'Extra practice',
+        title: scrollTitle,
+        body:
+          'Bonus training under ' +
+          rankLabel +
+          '. Every rep still builds Aura.',
+        auraText: '+' + boutGain + ' Aura',
+        tags: firstClear ? ['First clear!'] : ['Replay'],
+      });
     } else {
-      msg +=
-        ' · Bout ' + state.boutsToday + '/3 · ' + (3 - state.boutsToday) + ' left for day bonus';
+      const praise = [
+        'Sharp work!',
+        'Feet of the Order!',
+        'That’s a clean scroll!',
+        'You showed up — that counts!',
+        'Balance. Rhythm. Pride.',
+      ];
+      const line = praise[state.totalBouts % praise.length];
+      queueCelebration({
+        kind: 'scroll',
+        sound: 'cheer',
+        kicker: 'Scroll complete',
+        title: scrollTitle,
+        body:
+          line +
+          ' Bout ' +
+          state.boutsToday +
+          ' of 3 done.' +
+          (left
+            ? ' ' + left + ' more for Day Conquered.'
+            : ''),
+        auraText: '+' + boutGain + ' Aura',
+        tags: [
+          rankLabel,
+          firstClear ? 'First clear!' : 'Replay',
+          'Bout ' + state.boutsToday + '/3',
+        ],
+      });
     }
 
     save();
@@ -3041,9 +3380,8 @@
     resetTimer();
     activeDrill = null;
     showScreen('hall');
-    const ranked = afterAuraChange(prevAura);
-    if (!ranked) toast(msg);
-    else toast(msg);
+    // Level-ups wait until celebration is dismissed
+    afterAuraChange(prevAura, true);
   }
 
   function renderScrolls() {
@@ -3711,6 +4049,13 @@
     if (rankup) rankup.classList.remove('open');
     rankUpShowing = false;
     rankUpQueue = [];
+    const celeb = document.getElementById('celeb-bg');
+    if (celeb) celeb.classList.remove('open');
+    const conf = document.getElementById('celeb-confetti');
+    if (conf) conf.innerHTML = '';
+    celebShowing = false;
+    celebQueue = [];
+    pendingRankUp = null;
   }
 
   function bindAppEvents() {
@@ -3826,6 +4171,14 @@
     });
     on('rankup-bg', 'click', (e) => {
       if (e.target.id === 'rankup-bg') dismissRankUp();
+    });
+    on('btn-celeb-dismiss', 'click', (e) => {
+      e.stopPropagation();
+      dismissCelebration();
+    });
+    on('celeb-bg', 'click', (e) => {
+      if (e.target.id === 'celeb-bg' || e.target.id === 'celeb-confetti')
+        dismissCelebration();
     });
 
     document.querySelectorAll('.stat-tap[data-help]').forEach((btn) => {
