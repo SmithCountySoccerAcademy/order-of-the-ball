@@ -726,29 +726,31 @@
         </div>
 
         <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <h2 style="font-size:1.1rem;color:var(--gold);margin:0">Today’s Quest</h2>
+            <span class="tag" id="hall-day-status">0 / 3</span>
+          </div>
+          <p class="muted" style="margin-top:2px;font-size:0.85rem;line-height:1.4">
+            Finish <strong class="gold">3 bouts</strong> today. Each bout is one ball drill with a work / rest timer.
+          </p>
+          <div class="bout-track" id="hall-bouts" style="margin-top:12px"></div>
+          <button type="button" class="btn btn-gold" style="margin-top:14px" id="btn-start-bout">Train now</button>
+          <button type="button" class="btn btn-ghost" style="margin-top:8px" id="btn-hall-scrolls">Pick a scroll</button>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px">
-            <h2 style="font-size:1rem;color:var(--gold);margin:0">Level progress</h2>
+            <h2 style="font-size:1rem;color:var(--gold);margin:0">Level</h2>
             <span class="muted" style="font-size:0.75rem" id="hall-rank-next-label">Next: Level 2</span>
           </div>
           <div class="bar" style="height:12px"><i id="hall-rank-bar" style="width:0%"></i></div>
           <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:0.8rem">
             <span class="gold" id="hall-rank-aura-meta">0 / 100 Aura</span>
-            <span class="muted" id="hall-rank-to-go">— to next rank</span>
+            <span class="muted" id="hall-rank-to-go">— to next level</span>
           </div>
-          <p class="muted" style="margin-top:6px;font-size:0.75rem" id="hall-rank-bout-hint">About — more bout(s) at +40 Aura each</p>
         </div>
 
-        <div class="card" style="margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2 style="font-size:1rem;color:var(--gold)">Today’s Quest</h2>
-            <span class="tag" id="hall-day-status">In progress</span>
-          </div>
-          <p class="muted" style="margin-top:4px">Complete 3 Training Bouts (work/rest timers follow each drill)</p>
-          <div class="bout-track" id="hall-bouts"></div>
-          <button type="button" class="btn btn-gold" style="margin-top:14px" id="btn-start-bout">Enter Training Bout</button>
-        </div>
-
-        <div class="stat-grid" style="margin-bottom:12px">
+        <div class="stat-grid" style="margin-bottom:4px">
           <button type="button" class="stat stat-tap" data-help="streak" aria-label="Quest streak info">
             <div class="v" id="hall-streak">0</div>
             <div class="l">Quest streak</div>
@@ -761,13 +763,6 @@
             <div class="v" id="hall-shields">0</div>
             <div class="l">Shields 🛡️</div>
           </button>
-        </div>
-
-        <div class="card">
-          <h2 style="font-size:1rem;color:var(--gold);margin-bottom:8px">Ball Mastery</h2>
-          <p style="font-weight:600" id="hall-path-name">Squire</p>
-          <p class="muted" style="margin-top:4px;font-size:0.85rem" id="hall-path-focus">Foundation footwork</p>
-          <button type="button" class="btn btn-royal" style="margin-top:12px" id="btn-hall-scrolls">Open Scrolls</button>
         </div>
       </div>
     </section>
@@ -2516,7 +2511,6 @@
   function renderHall() {
     ensureDayBoundary();
     const rank = rankFromAura(state.aura);
-    const path = highestUnlockedGroup(rank);
     const prog = auraProgress(state.aura);
     ensureHonorState();
     document.getElementById('hall-emblem').textContent = state.emblem;
@@ -2528,48 +2522,42 @@
     document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
     document.getElementById('hall-shields').textContent = String(state.shields);
 
-    // Progress to next rank
+    // Level progress (simple)
     const bar = document.getElementById('hall-rank-bar');
     const nextLabel = document.getElementById('hall-rank-next-label');
     const auraMeta = document.getElementById('hall-rank-aura-meta');
     const toGo = document.getElementById('hall-rank-to-go');
-    const boutHint = document.getElementById('hall-rank-bout-hint');
     if (prog.maxed) {
       bar.style.width = '100%';
-      nextLabel.textContent = 'Max rank';
-      auraMeta.textContent = state.aura.toLocaleString() + ' Aura · Level ' + MAX_RANK;
-      toGo.textContent = 'Grandmaster peak';
-      boutHint.textContent = 'You stand at the summit of the Order.';
+      nextLabel.textContent = 'Max level';
+      auraMeta.textContent = state.aura.toLocaleString() + ' Aura';
+      toGo.textContent = 'Peak';
     } else {
       const need = Math.max(0, prog.next - state.aura);
       const nextRank = prog.rank + 1;
       bar.style.width = prog.pct.toFixed(1) + '%';
-      nextLabel.textContent =
-        'Next: Level ' + nextRank + ' · ' + rankBand(nextRank).replace(' of the Order', '');
+      nextLabel.textContent = 'Next: Level ' + nextRank + ' · ' + rankShort(nextRank);
       auraMeta.textContent =
         state.aura.toLocaleString() +
         ' / ' +
         prog.next.toLocaleString() +
         ' Aura';
-      toGo.textContent = need.toLocaleString() + ' Aura to go';
-      const typ = typicalBoutAura();
-      const boutsApprox = Math.ceil(need / typ);
-      boutHint.textContent =
-        need === 0
-          ? 'Ready to level up on next save.'
-          : 'About ' +
-            boutsApprox +
-            ' more bout' +
-            (boutsApprox === 1 ? '' : 's') +
-            ' at ~+' +
-            typ +
-            ' Aura each (path-based; day bonus extra)';
+      toGo.textContent = need.toLocaleString() + ' to go';
     }
 
+    // Today’s quest — the main loop
     const conquered = state.boutsToday >= 3;
-    document.getElementById('hall-day-status').textContent = conquered ? 'Day Conquered' : 'In progress';
+    const dayStatus = document.getElementById('hall-day-status');
+    dayStatus.textContent = conquered
+      ? 'Done ✓'
+      : state.boutsToday + ' / 3';
     document.getElementById('hall-bouts').innerHTML = [0, 1, 2]
-      .map((i) => `<div class="bout-pip${state.boutsToday > i ? ' done' : ''}">${state.boutsToday > i ? '⚔️' : '·'}</div>`)
+      .map(
+        (i) =>
+          `<div class="bout-pip${state.boutsToday > i ? ' done' : ''}">${
+            state.boutsToday > i ? '⚔️' : '·'
+          }</div>`
+      )
       .join('');
 
     const auraPrev = previewAura();
@@ -2578,40 +2566,36 @@
       auraHint = document.createElement('p');
       auraHint.id = 'hall-aura-hint';
       auraHint.className = 'muted';
-      auraHint.style.cssText = 'margin-top:10px;font-size:0.8rem';
+      auraHint.style.cssText = 'margin-top:10px;font-size:0.8rem;line-height:1.4';
       document.getElementById('hall-bouts').insertAdjacentElement('afterend', auraHint);
     }
-    auraHint.innerHTML = conquered
-      ? '<span class="gold">+' +
+    if (conquered) {
+      auraHint.innerHTML =
+        'Day conquered. Extra bouts still earn <span class="gold">+' +
         auraPrev.perBout +
-        ' Aura per bout</span> · day bonus already claimed'
-      : 'Each bout: <span class="gold">+' +
+        ' Aura</span> each.';
+    } else {
+      auraHint.innerHTML =
+        'Each bout: <span class="gold">+' +
         auraPrev.perBout +
-        ' Aura</span> · conquer day: <span class="gold">+' +
-        auraPrev.dayBonus +
-        ' bonus</span>' +
-        (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
-        ' · up to <span class="gold">+' +
-        auraPrev.fullDayTotal +
-        '</span> today';
+        ' Aura</span>' +
+        (state.boutsToday === 2
+          ? ' · this one also adds day bonus <span class="gold">+' +
+            auraPrev.dayBonus +
+            '</span>' +
+            (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '×)' : '')
+          : ' · after 3 bouts: day bonus <span class="gold">+' +
+            auraPrev.dayBonus +
+            '</span>');
+    }
 
     const btn = document.getElementById('btn-start-bout');
     btn.disabled = false;
-    const typ = typicalBoutAura();
     if (conquered) {
-      btn.textContent = 'Extra practice (~+' + typ + ' Aura)';
+      btn.textContent = 'Extra practice';
     } else {
-      btn.textContent =
-        'Enter Training Bout (' +
-        (state.boutsToday + 1) +
-        '/3) · ~+' +
-        typ +
-        ' Aura';
+      btn.textContent = 'Train now · bout ' + (state.boutsToday + 1) + ' of 3';
     }
-
-    document.getElementById('hall-path-name').textContent = path.title;
-    document.getElementById('hall-path-focus').textContent =
-      path.focus + ' · higher ranks unlock more scrolls';
   }
 
   function pickDrill() {
