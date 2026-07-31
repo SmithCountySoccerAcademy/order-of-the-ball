@@ -9,6 +9,7 @@ const {
   verifyUnlockToken,
   redeemAccessCode,
 } = require("./lib/unlock");
+const leaderboard = require("./lib/leaderboard");
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -177,6 +178,54 @@ app.post("/api/redeem-code", (req, res) => {
   res.json({ unlocked: true, token: result.token });
 });
 
+// —— Live leaderboard (opt-in submit from Arena) ——
+app.get("/api/leaderboard", (req, res) => {
+  try {
+    const limit = Math.min(25, Math.max(5, Number(req.query.limit) || 15));
+    res.json({
+      ok: true,
+      updatedAt: Date.now(),
+      board: leaderboard.getBoard(limit),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Leaderboard failed" });
+  }
+});
+
+app.post("/api/leaderboard/submit", (req, res) => {
+  try {
+    // Prefer unlocked buyers; still allow submit if token missing for beta UX
+    const token = req.body?.unlockToken || req.headers["x-unlock-token"];
+    if (token) {
+      const v = verifyUnlockToken(token);
+      if (!v.ok) {
+        return res.status(401).json({ error: "Unlock required to join the Arena" });
+      }
+    }
+
+    const result = leaderboard.submitScore({
+      playerId: req.body?.playerId,
+      name: req.body?.name,
+      emblem: req.body?.emblem,
+      aura: req.body?.aura,
+      rank: req.body?.rank,
+      streak: req.body?.streak,
+      bestStreak: req.body?.bestStreak,
+    });
+
+    res.json({
+      ok: true,
+      throttled: result.throttled,
+      entry: result.entry,
+      board: leaderboard.getBoard(15),
+    });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({
+      error: err.message || "Submit failed",
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Order of the Ball API + app at http://localhost:${PORT}`);
   console.log(`PUBLIC_APP_URL=${PUBLIC_APP_URL}`);
@@ -193,4 +242,5 @@ app.listen(PORT, () => {
       "UNLOCK_SECRET not set — using fallback. Set a strong secret in production."
     );
   }
+  console.log(`Leaderboard data → ${leaderboard.DATA_PATH}`);
 });

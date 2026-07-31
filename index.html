@@ -697,10 +697,15 @@
           <p style="margin-top:12px;font-size:0.85rem;color:var(--gold)" id="arena-stats">0 Aura · 0 day streak</p>
           <p style="margin-top:8px;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(243,230,200,0.4)">Order of the Ball</p>
         </div>
-        <button type="button" class="btn btn-gold" id="btn-share" style="margin-bottom:16px">Share rank card</button>
+        <button type="button" class="btn btn-gold" id="btn-share" style="margin-bottom:10px">Share rank card</button>
+        <button type="button" class="btn btn-royal" id="btn-submit-score" style="margin-bottom:16px">Post score to live board</button>
+        <p class="muted" style="text-align:center;font-size:0.75rem;margin-bottom:12px" id="lb-status">Opt-in: posts your name, emblem, rank &amp; Aura</p>
         <div class="card">
-          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Hall of Fame <span class="muted" style="font-weight:400;font-size:0.75rem">(demo)</span></h3>
-          <div id="leaderboard"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="font-size:0.95rem;color:var(--gold);margin:0">Hall of Fame</h3>
+            <button type="button" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:0.65rem" id="btn-refresh-lb">Refresh</button>
+          </div>
+          <div id="leaderboard"><p class="muted" style="font-size:0.85rem">Loading live board…</p></div>
         </div>
       </div>
     </section>
@@ -1222,13 +1227,6 @@
     },
   ];
 
-  const DEMO_LEADERS = [
-    { name: 'Lady Mira', emblem: '🦁', rank: 72, aura: RANK_AURA[71] + 500 },
-    { name: 'Sir Cedric', emblem: '🐉', rank: 54, aura: RANK_AURA[53] + 200 },
-    { name: 'Knight Ash', emblem: '⚡', rank: 31, aura: RANK_AURA[30] + 100 },
-    { name: 'Squire Jun', emblem: '🛡️', rank: 12, aura: RANK_AURA[11] + 50 },
-    { name: 'Page Ren', emblem: '⭐', rank: 4, aura: RANK_AURA[3] },
-  ];
 
   // —— State ——
   let state = null;
@@ -1314,8 +1312,21 @@
       lastSeenDay: null,
       totalBouts: 0,
       tutorialDone: false,
+      playerId: '',
       createdAt: new Date().toISOString(),
     };
+  }
+
+  function ensurePlayerId() {
+    if (!state) return '';
+    if (!state.playerId || state.playerId.length < 8) {
+      state.playerId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      save();
+    }
+    return state.playerId;
   }
 
   const TUTORIAL_DRILL = {
@@ -2323,6 +2334,97 @@
     document.getElementById('rank-titles').innerHTML = titles;
   }
 
+  function paintLeaderboard(board, myId) {
+    const el = document.getElementById('leaderboard');
+    if (!board || !board.length) {
+      el.innerHTML =
+        '<p class="muted" style="font-size:0.85rem">No champions posted yet. Be the first — tap <strong class="gold">Post score to live board</strong>.</p>';
+      return;
+    }
+    el.innerHTML = board
+      .map((row) => {
+        const you = myId && row.playerId === myId;
+        return (
+          '<div class="lb-row' +
+          (you ? ' you' : '') +
+          '"><span class="lb-rank">' +
+          row.place +
+          '</span><span>' +
+          (row.emblem || '⚔️') +
+          '</span><span style="flex:1">' +
+          (row.name || 'Knight') +
+          (you ? ' (you)' : '') +
+          '</span><span class="muted">R' +
+          row.rank +
+          ' · ' +
+          Number(row.aura || 0).toLocaleString() +
+          '</span></div>'
+        );
+      })
+      .join('');
+  }
+
+  async function fetchLeaderboard() {
+    const status = document.getElementById('lb-status');
+    const el = document.getElementById('leaderboard');
+    try {
+      el.innerHTML = '<p class="muted" style="font-size:0.85rem">Loading live board…</p>';
+      const res = await fetch(apiUrl('/api/leaderboard?limit=15'));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load board');
+      const myId = state ? ensurePlayerId() : '';
+      paintLeaderboard(data.board || [], myId);
+      status.textContent =
+        (data.board && data.board.length
+          ? data.board.length + ' knight' + (data.board.length === 1 ? '' : 's') + ' on the board · '
+          : 'Board empty · ') + 'opt-in posts only';
+    } catch (err) {
+      el.innerHTML =
+        '<p class="muted" style="font-size:0.85rem">Live board offline. Check your connection / API.</p>';
+      status.textContent = err.message || 'Board unavailable';
+    }
+  }
+
+  async function submitLiveScore() {
+    if (!state || !state.name) {
+      toast('Create your profile first.');
+      return;
+    }
+    const status = document.getElementById('lb-status');
+    const btn = document.getElementById('btn-submit-score');
+    btn.disabled = true;
+    status.textContent = 'Posting to the Arena…';
+    try {
+      const rank = rankFromAura(state.aura);
+      const res = await fetch(apiUrl('/api/leaderboard/submit'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId: ensurePlayerId(),
+          name: state.name,
+          emblem: state.emblem,
+          aura: state.aura,
+          rank: rank,
+          streak: state.streak,
+          bestStreak: state.bestStreak,
+          unlockToken: getUnlockToken(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Submit failed');
+      paintLeaderboard(data.board || [], state.playerId);
+      status.textContent = data.throttled
+        ? 'Updated recently — board refreshed.'
+        : 'Posted! Your standing is live.';
+      toast(data.throttled ? 'Board refreshed' : 'Score posted to the Arena!');
+    } catch (err) {
+      status.textContent = err.message || 'Could not post';
+      toast(err.message || 'Could not post score');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   function renderArena() {
     const rank = rankFromAura(state.aura);
     document.getElementById('arena-emblem').textContent = state.emblem;
@@ -2330,35 +2432,8 @@
     document.getElementById('arena-rank').textContent = 'Rank ' + rank + ' · ' + rankBand(rank);
     document.getElementById('arena-stats').textContent =
       state.aura.toLocaleString() + ' Aura · ' + state.streak + ' day streak · Best ' + state.bestStreak;
-
-    const you = {
-      name: state.name,
-      emblem: state.emblem,
-      rank,
-      aura: state.aura,
-      you: true,
-    };
-    const board = DEMO_LEADERS.concat([you]).sort((a, b) => b.aura - a.aura).slice(0, 8);
-    document.getElementById('leaderboard').innerHTML = board
-      .map((row, i) => {
-        return (
-          '<div class="lb-row' +
-          (row.you ? ' you' : '') +
-          '"><span class="lb-rank">' +
-          (i + 1) +
-          '</span><span>' +
-          row.emblem +
-          '</span><span style="flex:1">' +
-          row.name +
-          (row.you ? ' (you)' : '') +
-          '</span><span class="muted">R' +
-          row.rank +
-          ' · ' +
-          row.aura.toLocaleString() +
-          '</span></div>'
-        );
-      })
-      .join('');
+    ensurePlayerId();
+    fetchLeaderboard();
   }
 
   async function shareCard() {
@@ -2403,6 +2478,7 @@
     state.boutDay = todayKey();
     state.lastSeenDay = todayKey();
     state.tutorialDone = false;
+    ensurePlayerId();
     save();
     document.getElementById('main-nav').classList.remove('visible');
     startTutorial();
