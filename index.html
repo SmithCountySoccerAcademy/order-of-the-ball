@@ -795,7 +795,10 @@
           <p class="muted" style="font-size:0.75rem;margin-top:6px">Watch the demo, then train the bout.</p>
         </div>
         <div class="card" style="text-align:center">
-          <p class="muted" style="margin-bottom:6px">Drill timer · work &amp; rest from this scroll</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px">
+            <p class="muted" style="margin:0;text-align:left">Drill timer · work &amp; rest</p>
+            <button type="button" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:0.7rem" id="btn-sound-toggle" aria-label="Toggle timer sounds">🔊 Sound on</button>
+          </div>
           <div id="bout-phase-badge" class="phase-badge work">Work</div>
           <div class="timer phase-work" id="bout-timer">0:45</div>
           <p class="muted" style="margin-top:6px" id="bout-round-meta">Round 1 of 8</p>
@@ -1625,6 +1628,108 @@
   let selectedEmblem = EMBLEMS[0];
   /** Onboarding style: '' | 'Sir' | 'Lady' */
   let selectedStylePrefix = '';
+
+  // —— Timer sounds (Web Audio — no files; unlock on first tap) ——
+  let audioCtx = null;
+  let soundEnabled = true;
+  try {
+    if (localStorage.getItem('ootb_sound') === '0') soundEnabled = false;
+  } catch (e) {
+    /* ignore */
+  }
+
+  function ensureAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function playTone(freq, durationSec, type, volume) {
+    if (!soundEnabled) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+      const dur = Math.max(0.04, durationSec || 0.12);
+      const vol = volume == null ? 0.14 : volume;
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(vol, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.02);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  /** Work phase: bright double beep */
+  function playWorkCue() {
+    playTone(880, 0.1, 'sine', 0.16);
+    setTimeout(function () {
+      playTone(1175, 0.14, 'sine', 0.15);
+    }, 90);
+  }
+
+  /** Rest phase: softer lower tones */
+  function playRestCue() {
+    playTone(392, 0.16, 'triangle', 0.13);
+    setTimeout(function () {
+      playTone(330, 0.2, 'triangle', 0.11);
+    }, 120);
+  }
+
+  /** Bout / practice finished */
+  function playDoneCue() {
+    playTone(523, 0.1, 'sine', 0.14);
+    setTimeout(function () {
+      playTone(659, 0.1, 'sine', 0.14);
+    }, 110);
+    setTimeout(function () {
+      playTone(784, 0.18, 'sine', 0.15);
+    }, 220);
+  }
+
+  /** Last 3 seconds of a phase */
+  function playCountdownTick() {
+    playTone(700, 0.05, 'square', 0.07);
+  }
+
+  function playPhaseCue(type) {
+    if (type === 'rest') playRestCue();
+    else playWorkCue();
+  }
+
+  function updateSoundToggleUI() {
+    const btn = document.getElementById('btn-sound-toggle');
+    if (!btn) return;
+    btn.textContent = soundEnabled ? '🔊 Sound on' : '🔇 Sound off';
+  }
+
+  function setSoundEnabled(on) {
+    soundEnabled = Boolean(on);
+    try {
+      localStorage.setItem('ootb_sound', soundEnabled ? '1' : '0');
+    } catch (e) {
+      /* ignore */
+    }
+    updateSoundToggleUI();
+    if (soundEnabled) {
+      ensureAudio();
+      playWorkCue(); // short confirm
+    }
+  }
   let timer = {
     segments: [],
     index: 0,
@@ -1780,6 +1885,7 @@
     running: false,
     handle: null,
     finished: false,
+    started: false,
   };
 
   const IDB_NAME = 'OrderOfTheBallDB';
@@ -2612,6 +2718,7 @@
   }
 
   function renderBout() {
+    updateSoundToggleUI();
     if (!activeDrill) {
       const picked = pickDrill();
       activeDrill = picked;
@@ -2747,12 +2854,14 @@
       timer.remaining = 0;
       stopTimerInterval();
       updateTimerUI();
+      playDoneCue();
       toast('⚔️ Drill complete — all work & rest finished!');
       return;
     }
     const next = currentSegment();
     timer.remaining = next.sec;
     updateTimerUI();
+    playPhaseCue(next.type);
     if (next.type === 'rest') toast('Rest · ' + formatTime(next.sec));
     else toast('Work · ' + formatTime(next.sec));
   }
@@ -2760,8 +2869,14 @@
   function startTimerInterval() {
     if (timer.finished) return;
     stopTimerInterval();
+    const firstStart = !timer.started;
     timer.running = true;
     timer.started = true;
+    ensureAudio();
+    if (firstStart) {
+      const seg = currentSegment();
+      if (seg) playPhaseCue(seg.type);
+    }
     timer.handle = setInterval(() => {
       if (timer.finished) {
         stopTimerInterval();
@@ -2772,6 +2887,9 @@
         return;
       }
       timer.remaining -= 1;
+      if (timer.remaining <= 3 && timer.remaining >= 1) {
+        playCountdownTick();
+      }
       updateTimerUI();
     }, 1000);
     updateTimerUI();
@@ -3342,6 +3460,7 @@
     tutTimer.index = 0;
     tutTimer.finished = false;
     tutTimer.running = false;
+    tutTimer.started = false;
     tutTimer.remaining = tutTimer.segments[0] ? tutTimer.segments[0].sec : 20;
     updateTutTimerUI();
   }
@@ -3390,23 +3509,36 @@
       tutTimer.finished = true;
       stopTutTimer();
       updateTutTimerUI();
+      playDoneCue();
       toast('Practice complete!');
       return;
     }
     tutTimer.remaining = tutTimer.segments[tutTimer.index].sec;
     updateTutTimerUI();
+    const seg = tutTimer.segments[tutTimer.index];
+    if (seg) playPhaseCue(seg.type);
   }
 
   function startTutTimerInterval() {
     if (tutTimer.finished) return;
     stopTutTimer();
+    const firstStart = !tutTimer.started;
     tutTimer.running = true;
+    tutTimer.started = true;
+    ensureAudio();
+    if (firstStart) {
+      const seg = tutTimer.segments[tutTimer.index];
+      if (seg) playPhaseCue(seg.type);
+    }
     tutTimer.handle = setInterval(function () {
       if (tutTimer.remaining <= 1) {
         advanceTutSegment();
         return;
       }
       tutTimer.remaining -= 1;
+      if (tutTimer.remaining <= 3 && tutTimer.remaining >= 1) {
+        playCountdownTick();
+      }
       updateTutTimerUI();
     }, 1000);
     updateTutTimerUI();
@@ -3640,6 +3772,9 @@
       if (timer.running && !confirm('Reset the bout timer?')) return;
       resetTimer();
     });
+    on('btn-sound-toggle', 'click', () => {
+      setSoundEnabled(!soundEnabled);
+    });
     on('btn-complete-bout', 'click', () => completeBout());
 
     on('scroll-list', 'click', (e) => {
@@ -3756,6 +3891,7 @@
     try {
       clearOverlays();
       bindAppEvents();
+      updateSoundToggleUI();
       on('btn-buy', 'click', startCheckout);
       on('btn-redeem-code', 'click', redeemCode);
 
