@@ -834,15 +834,11 @@
         </div>
         <div class="card" style="margin-bottom:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:6px">Your proclamation</h3>
-          <p class="gold" style="font-weight:700;font-size:1.05rem;line-height:1.3;margin-bottom:10px" id="proc-preview">—</p>
-          <p class="muted" style="font-size:0.75rem;margin-bottom:10px;line-height:1.4">
-            <strong class="gold">Rank</strong> from level · <strong class="gold">style</strong> (Sir/Lady) · your <strong class="gold">name</strong> · <strong class="gold">honor</strong> from streaks
+          <p class="gold" style="font-weight:700;font-size:1.05rem;line-height:1.3;margin-bottom:8px" id="proc-preview">—</p>
+          <p class="muted" style="font-size:0.75rem;margin-bottom:12px;line-height:1.4">
+            Rank + name are fixed (style chosen at the start). Pick an <strong class="gold">honor</strong> you earned from quest streaks.
           </p>
-
-          <p class="muted" style="font-size:0.8rem;margin-bottom:6px">Style</p>
-          <div class="btn-row" id="style-prefix-row" style="margin-bottom:14px;flex-wrap:wrap;gap:6px"></div>
-
-          <p class="muted" style="font-size:0.8rem;margin-bottom:6px">Honor (from quest streaks)</p>
+          <p class="muted" style="font-size:0.8rem;margin-bottom:6px">Honor</p>
           <div class="list" id="honor-list"></div>
         </div>
         <div class="card" style="margin-top:12px">
@@ -1089,19 +1085,9 @@
   const EMBLEMS = ['⚔️','🛡️','🦁','🐉','🦅','🔥','⚡','🌙','⭐','🏴'];
 
   /**
-   * STYLE PREFIXES — optional, always available (pick on Level tab).
-   * Proclamation: Rank + Style + Name + Honor
-   * e.g. "High Sage Sir Karl the Quick" · "Page Kevin" · "Squire Lady Ella the Brave"
-   */
-  const STYLE_PREFIXES = [
-    { id: '', label: 'None' },
-    { id: 'Sir', label: 'Sir' },
-    { id: 'Lady', label: 'Lady' },
-  ];
-
-  /**
    * HONOR TITLES — earned by best quest streak (kept forever once unlocked).
    * Player picks one active honor for their proclamation.
+   * Style (Sir/Lady/None) is chosen only at onboarding and never changed later.
    * shields: one-time Streak Shield gift when first unlocked (tracked in shieldClaims).
    */
   const HONOR_TITLES = [
@@ -3158,22 +3144,6 @@
     const preview = document.getElementById('proc-preview');
     if (preview) preview.textContent = formatProclamation();
 
-    const styleRow = document.getElementById('style-prefix-row');
-    if (styleRow) {
-      styleRow.innerHTML = STYLE_PREFIXES.map((s) => {
-        const active = (state.stylePrefix || '') === s.id;
-        return (
-          '<button type="button" class="btn ' +
-          (active ? 'btn-gold' : 'btn-ghost') +
-          '" style="width:auto;padding:8px 12px;font-size:0.8rem" data-style-prefix="' +
-          s.id +
-          '">' +
-          s.label +
-          '</button>'
-        );
-      }).join('');
-    }
-
     const honorList = document.getElementById('honor-list');
     if (honorList) {
       let html =
@@ -3186,9 +3156,7 @@
         '">' +
         (!state.activeHonor ? 'Active' : 'Use') +
         '</span></div>' +
-        '<p class="muted" style="margin-top:4px;font-size:0.8rem">Just Rank + name' +
-        (state.stylePrefix ? ' (with ' + state.stylePrefix + ')' : '') +
-        '</p></button>';
+        '<p class="muted" style="margin-top:4px;font-size:0.8rem">Rank + name only (no epithet)</p></button>';
 
       for (const h of HONOR_TITLES) {
         const unlocked = honorUnlocked(h);
@@ -3652,18 +3620,6 @@
     on('input-name', 'input', updateOnboardPreview);
 
     on('btn-begin', 'click', beginOrder);
-
-    on('style-prefix-row', 'click', (e) => {
-      const btn = e.target.closest('[data-style-prefix]');
-      if (!btn || !state) return;
-      state.stylePrefix = btn.getAttribute('data-style-prefix') || '';
-      save();
-      renderRank();
-      // Keep Hall in sync if they go back
-      const hallName = document.getElementById('hall-name');
-      if (hallName) hallName.textContent = formatProclamation();
-      toast(formatProclamation());
-    });
 
     on('honor-list', 'click', (e) => {
       const btn = e.target.closest('[data-honor]');
