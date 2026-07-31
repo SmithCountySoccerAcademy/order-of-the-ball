@@ -642,7 +642,7 @@
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
             <li>Levels 1–99 · ranks · streak honors · ball mastery scrolls</li>
-            <li>Squire → Grandmaster rank scrolls · growing library</li>
+            <li>Page → Grandmaster rank scrolls · growing library</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
         </div>
@@ -772,7 +772,7 @@
       <div class="screen-scroll">
         <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;margin-bottom:12px" id="btn-bout-back">← Hall</button>
         <div class="card card-parchment" style="margin-bottom:12px">
-          <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Squire</span>
+          <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Page</span>
           <h2 style="margin-top:8px;font-size:1.35rem" id="bout-drill-title">Drill</h2>
           <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="bout-drill-setup"></p>
           <ol class="steps" id="bout-drill-steps"></ol>
@@ -933,7 +933,7 @@
    *
    * Design goals:
    * - Early ranks feel rewarding (love the ball / form the habit)
-   * - ~15 min/day (3 short Squire bouts) is enough to progress
+   * - ~15 min/day (3 short Page/Squire bouts) is enough to progress
    * - Higher Order ranks unlock more scrolls and pay more Aura
    * - Grandmaster (97–99) is a long, serious journey — not a weekend grind
    */
@@ -1200,17 +1200,16 @@
 
   /**
    * ═══════════════════════════════════════════════════════════════════
-   * SCROLL LIBRARY — one block per Order rank (Squire, Knight, …)
+   * SCROLL LIBRARY — one block per Order rank (Page, Squire, Knight, …)
    * ═══════════════════════════════════════════════════════════════════
    *
-   * Display name = Order rank (not streak titles, not "X Path").
-   * Each rank holds scrolls unlocked at that rank’s level.
-   * unlockRank matches the ladder in rankBand().
+   * Display name = Order rank. Unlocks match rankBand() levels:
+   *   Page 1 · Squire 5 · Knight 10 · Guardian 30 · Champion 40 · …
    *
    * HOW TO ADD A SCROLL (easiest):
-   *   1. Find the rank block (e.g. "Squire")
+   *   1. Find the rank block (e.g. "Page")
    *   2. Copy any scroll object inside its scrolls: [ ... ] array
-   *   3. Give it a unique id within that rank (e.g. 'sq5', 'kn5')
+   *   3. Give it a unique id within that rank (e.g. 'pg5', 'sq5')
    *   4. Fill title, setup, steps[], counsel
    *   5. Optional: video (YouTube/Vimeo/mp4 URL), timing
    *
@@ -1222,14 +1221,108 @@
    *   { workSec, restSec, rounds }  → interval blocks
    *   { segments: [{ type:'work'|'rest', sec, label? }] }
    *
-   * Save keys use "{id}:{scrollId}" (e.g. squire:sq1) — never rename ids.
+   * Save keys use "{id}:{scrollId}" (e.g. page:pg1) — never rename ids.
    * ═══════════════════════════════════════════════════════════════════
    */
   const RANK_SCROLLS = [
     {
+      id: 'page',
+      title: 'Page',
+      unlockRank: 1,
+      auraReward: 25,
+      focus: 'Balance · coordination · body control',
+      scrolls: [
+        {
+          id: 'pg1',
+          title: 'Stork of the Yard',
+          setup: 'Bare feet or shoes · 5×5 · no ball required · ~4 min',
+          video: '',
+          timing: { workSec: 20, restSec: 10, rounds: 8 },
+          steps: [
+            'Stand tall in the center of your 5×5.',
+            'WORK: balance on one foot (soft knee). Switch feet halfway if you wobble.',
+            'REST: both feet down, shake out ankles.',
+            'Eyes on a fixed spot ahead — not at your feet.',
+          ],
+          counsel: 'A page learns to own the ground before they own the ball.',
+        },
+        {
+          id: 'pg2',
+          title: 'Soft-Knee March',
+          setup: 'Stand in place · arms free · ~4 min',
+          video: '',
+          timing: { workSec: 20, restSec: 10, rounds: 8 },
+          steps: [
+            'March in place: lift knees gently, land quiet.',
+            'WORK: left-right rhythm — no stomping.',
+            'REST: stand still, breathe through the nose.',
+            'Count “1-2, 1-2” in your head to stay even.',
+          ],
+          counsel: 'Quiet feet win wars. Loud feet warn the enemy.',
+        },
+        {
+          id: 'pg3',
+          title: 'Line Walk — Heel to Toe',
+          setup: 'Imagine a straight line (or use a crack / tape) · ~4 min',
+          video: '',
+          timing: { workSec: 25, restSec: 10, rounds: 6 },
+          steps: [
+            'Walk heel-to-toe along your line inside the 5×5.',
+            'WORK: slow and tall. Arms out like a tightrope if needed.',
+            'REST: turn carefully, reset on the line.',
+            'If you step off, pause one breath and continue — no shame.',
+          ],
+          counsel: 'Balance is a conversation with gravity. Speak softly.',
+        },
+        {
+          id: 'pg4',
+          title: 'Side-Step Guard',
+          setup: 'Athletic stance · knees soft · ~4 min',
+          video: '',
+          timing: { workSec: 20, restSec: 10, rounds: 8 },
+          steps: [
+            'Side-step left and right across your 5×5 (shuffle, don’t cross feet).',
+            'WORK: stay low and light — head level, no bouncing high.',
+            'REST: freeze in the middle, hold the stance.',
+            'Touch the “walls” of your arena with the outside foot each side.',
+          ],
+          counsel: 'Lateral steps are a defender’s alphabet. Learn the letters early.',
+        },
+        {
+          id: 'pg5',
+          title: 'Ball Under Sole — Stillness',
+          setup: 'One ball · sole of the foot on top · ~4 min',
+          video: '',
+          timing: { workSec: 20, restSec: 10, rounds: 8 },
+          steps: [
+            'Place the ball under the middle of one sole. Find quiet balance.',
+            'WORK: hold still — tiny ankle adjustments only. Switch foot each rest.',
+            'REST: ball free under both feet or held in hands.',
+            'If the ball escapes, trap it calmly and reset. No chase panic.',
+          ],
+          counsel: 'First touch with the ball is friendship, not combat.',
+        },
+        {
+          id: 'pg6',
+          title: 'Sit & Stand of the Page',
+          setup: 'No ball · clear floor · ~4 min',
+          video: '',
+          timing: { workSec: 20, restSec: 15, rounds: 6 },
+          steps: [
+            'From standing, sit down gently (cross-legged or squat), then stand back up.',
+            'WORK: smooth sit → stand without using hands if you can.',
+            'REST: stand tall, hands on hips, breathe.',
+            'Control the landing — no flopping.',
+          ],
+          counsel: 'The body that rises with control will later rise with the ball.',
+        },
+        // → paste more Page scrolls above this comment
+      ],
+    },
+    {
       id: 'squire',
       title: 'Squire',
-      unlockRank: 1,
+      unlockRank: 5,
       auraReward: 35,
       focus: 'Love the ball · foundation footwork',
       scrolls: [
@@ -2872,7 +2965,7 @@
 
     // Always grant Aura for finishing a scroll (amount depends on path)
     const pathId =
-      activeDrill && activeDrill.path ? activeDrill.path.id : 'squire';
+      activeDrill && activeDrill.path ? activeDrill.path.id : 'page';
     const boutGain = getScrollAura(pathId);
     state.aura += boutGain;
     let msg = '⚔️ Scroll complete! +' + boutGain + ' Aura';
@@ -3751,7 +3844,7 @@
     } else if (kind === 'mult') {
       title = 'Multiplier';
       body =
-        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura only (each scroll still pays its rank Aura: Squire +35, Knight +50, Champion +70, Legend +95, …).</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura only (each scroll still pays its rank Aura: Page +25, Squire +35, Knight +50, …).</p>' +
         '<p style="margin-bottom:10px;line-height:1.5">Your streak is <strong class="gold">' +
         streak +
         '</strong> → multiplier <strong class="gold">' +
