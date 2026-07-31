@@ -248,6 +248,77 @@
       padding: 1px 3px 2px;
     }
 
+    .rankup-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(4, 8, 24, 0.88);
+      backdrop-filter: blur(6px);
+    }
+    .rankup-bg.open { display: flex; animation: rankupFade 0.35s ease; }
+    @keyframes rankupFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .rankup-card {
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      padding: 28px 22px 22px;
+      border-radius: 18px;
+      border: 2px solid var(--gold);
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(212,175,55,0.25), transparent 55%),
+        linear-gradient(165deg, #1a2f7a 0%, #0c1a4d 45%, #12121a 100%);
+      box-shadow: 0 0 0 1px rgba(212,175,55,0.2), 0 20px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,175,55,0.15);
+      animation: rankupPop 0.45s cubic-bezier(0.22, 1.2, 0.36, 1);
+    }
+    @keyframes rankupPop {
+      from { transform: scale(0.85) translateY(16px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .rankup-burst {
+      font-size: 2rem;
+      letter-spacing: 0.15em;
+      animation: rankupPulse 1.2s ease infinite;
+    }
+    @keyframes rankupPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.85; }
+    }
+    .rankup-title {
+      font-family: var(--display);
+      font-size: 1.1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      margin: 10px 0 6px;
+    }
+    .rankup-rank {
+      font-family: var(--display);
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+      text-shadow: 0 0 24px rgba(212,175,55,0.45);
+    }
+    .rankup-band {
+      margin-top: 8px;
+      font-size: 1rem;
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .rankup-sub {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: rgba(243,230,200,0.65);
+      line-height: 1.45;
+    }
+
     .bout-track { display: flex; gap: 8px; margin-top: 12px; }
     .bout-pip {
       flex: 1;
@@ -766,6 +837,18 @@
 
   <div class="modal-bg" id="modal-bg">
     <div class="modal" id="modal-body"></div>
+  </div>
+  <div class="rankup-bg" id="rankup-bg" role="dialog" aria-labelledby="rankup-rank-label">
+    <div class="rankup-card">
+      <div class="rankup-burst">⚔️ ✨ 🛡️</div>
+      <p class="rankup-title">Rank up</p>
+      <div class="crest" id="rankup-emblem" style="margin:12px auto">⚔️</div>
+      <p class="rankup-rank" id="rankup-rank-label">Rank 2</p>
+      <p class="rankup-band" id="rankup-band">Squire of the Order</p>
+      <p class="rankup-sub" id="rankup-sub">You have risen in the Order.</p>
+      <p class="muted" style="margin-top:8px;font-size:0.8rem" id="rankup-from">From Rank 1</p>
+      <button type="button" class="btn btn-gold" style="margin-top:20px" id="btn-rankup-dismiss">Continue the quest</button>
+    </div>
   </div>
   <div class="toast" id="toast"></div>
 
@@ -1769,6 +1852,65 @@
     toast._t = setTimeout(() => el.classList.remove('show'), 2800);
   }
 
+  let rankUpQueue = [];
+  let rankUpShowing = false;
+
+  function celebrateRankUp(fromRank, toRank) {
+    if (!toRank || toRank <= fromRank) return;
+    // Queue multi-rank jumps (e.g. tutorial Page → Squire)
+    for (let r = fromRank + 1; r <= toRank; r++) {
+      rankUpQueue.push({ from: r - 1, to: r });
+    }
+    pumpRankUp();
+  }
+
+  function pumpRankUp() {
+    if (rankUpShowing || !rankUpQueue.length) return;
+    rankUpShowing = true;
+    const item = rankUpQueue.shift();
+    const band = rankBand(item.to);
+    const prevBand = rankBand(item.from);
+    const titleChanged = band !== prevBand;
+
+    document.getElementById('rankup-emblem').textContent =
+      (state && state.emblem) || '⚔️';
+    document.getElementById('rankup-rank-label').textContent = 'Rank ' + item.to;
+    document.getElementById('rankup-band').textContent = band;
+    document.getElementById('rankup-from').textContent =
+      'Rose from Rank ' + item.from + (titleChanged ? ' · New title!' : '');
+    document.getElementById('rankup-sub').textContent = titleChanged
+      ? 'New standing in the Order: ' + band.replace(' of the Order', '') + '.'
+      : 'Your Aura has lifted you higher. Keep training, knight.';
+
+    document.getElementById('rankup-bg').classList.add('open');
+
+    // Light haptic if available
+    try {
+      if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function dismissRankUp() {
+    document.getElementById('rankup-bg').classList.remove('open');
+    rankUpShowing = false;
+    if (rankUpQueue.length) {
+      setTimeout(pumpRankUp, 280);
+    }
+  }
+
+  /** Call after any Aura change. Returns true if ranked up. */
+  function afterAuraChange(prevAura) {
+    const before = rankFromAura(prevAura);
+    const after = rankFromAura(state.aura);
+    if (after > before) {
+      celebrateRankUp(before, after);
+      return true;
+    }
+    return false;
+  }
+
   // —— UI ——
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
@@ -2166,6 +2308,8 @@
     state.totalBouts += 1;
     state.boutDay = todayKey();
 
+    const prevAura = state.aura;
+
     // Always grant Aura for finishing a scroll
     const boutGain = AURA_PER_BOUT;
     state.aura += boutGain;
@@ -2213,8 +2357,10 @@
     stopTimerInterval();
     resetTimer();
     activeDrill = null;
-    toast(msg);
     showScreen('hall');
+    const ranked = afterAuraChange(prevAura);
+    if (!ranked) toast(msg);
+    else toast(msg);
   }
 
   function renderScrolls() {
@@ -2736,6 +2882,7 @@
   function finishTutorial(skipped) {
     stopTutTimer();
     if (!state) return;
+    const prevAura = state.aura;
     // Promote to Squire (Rank 2) — exact Aura threshold
     const squireAura = auraNeededForRank(2);
     if (state.aura < squireAura) state.aura = squireAura;
@@ -2745,10 +2892,13 @@
     save();
     document.getElementById('main-nav').classList.add('visible');
     showScreen('hall');
-    if (skipped) {
-      toast('Squire rank granted. The Hall awaits, ' + state.name + '!');
-    } else {
-      toast('You are Squire ' + state.name + ' · Rank ' + rankFromAura(state.aura) + '!');
+    const ranked = afterAuraChange(prevAura);
+    if (!ranked) {
+      toast(
+        skipped
+          ? 'Squire rank granted. The Hall awaits, ' + state.name + '!'
+          : 'You are Squire ' + state.name + '!'
+      );
     }
   }
 
