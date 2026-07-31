@@ -641,7 +641,7 @@
           <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
-            <li>Levels 1–99 · titles · streaks · shields</li>
+            <li>Levels 1–99 · streaks · shields · ball mastery scrolls</li>
             <li>Squire → Grandmaster rank scrolls · growing library</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
@@ -755,13 +755,12 @@
         </div>
 
         <div class="card" style="margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-            <span class="muted">Next title</span>
-            <span class="gold" style="font-size:0.85rem" id="hall-title-name">Consistent</span>
-          </div>
-          <div class="bar"><i id="hall-title-bar" style="width:0%"></i></div>
-          <p class="muted" style="margin-top:6px;font-size:0.75rem" id="hall-title-meta">0 / 3 streak days</p>
-          <p class="muted" style="margin-top:4px;font-size:0.75rem">Best streak ever: <span class="gold" id="hall-best">0</span> days</p>
+          <p class="muted" style="font-size:0.85rem;line-height:1.45">
+            Best streak ever: <strong class="gold" id="hall-best">0</strong> days
+          </p>
+          <p class="muted" style="margin-top:6px;font-size:0.75rem;line-height:1.4" id="hall-streak-hint">
+            Conquer 3 bouts a day to grow streak &amp; day-bonus mult
+          </p>
         </div>
 
         <div class="card">
@@ -814,14 +813,14 @@
     <!-- RANK -->
     <section class="screen" id="screen-rank">
       <div class="screen-scroll">
-        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Level & Titles</h1>
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Level</h1>
         <div class="card" style="margin-bottom:12px;text-align:center">
           <div class="crest" id="rank-emblem" style="margin:0 auto 12px">⚔️</div>
           <h2 class="gold" id="rank-title">Level 1</h2>
           <p class="muted" id="rank-band">Page of the Order</p>
           <div style="margin-top:14px;text-align:left">
             <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px">
-              <span class="muted">Aura to next rank</span>
+              <span class="muted">Aura to next level</span>
               <span class="gold" id="rank-aura-meta">0 / 100</span>
             </div>
             <div class="bar"><i id="rank-aura-bar" style="width:0%"></i></div>
@@ -830,10 +829,6 @@
         <div class="card" style="margin-bottom:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Title</h3>
           <div class="list" id="rank-paths"></div>
-        </div>
-        <div class="card">
-          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Titles earned</h3>
-          <div class="list" id="rank-titles"></div>
         </div>
         <div class="card" style="margin-top:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">🛡️ Keep your progress</h3>
@@ -1078,11 +1073,14 @@
 
   const EMBLEMS = ['⚔️','🛡️','🦁','🐉','🦅','🔥','⚡','🌙','⭐','🏴'];
 
-  const MILESTONES = [
-    { id: 'consistent', days: 3, title: 'Consistent', shields: 0 },
-    { id: 'week_warrior', days: 7, title: 'Week Warrior', shields: 1 },
-    { id: 'fortnight', days: 14, title: 'Fortnight Knight', shields: 1 },
-    { id: 'unbreakable', days: 30, title: 'Unbreakable', shields: 2 },
+  /**
+   * Streak shield gifts (no named titles for now — revisit later).
+   * Claimed once when quest streak first hits `days`. Tracked by id in state.shieldClaims.
+   */
+  const STREAK_SHIELD_REWARDS = [
+    { id: 'shield_7', days: 7, shields: 1 },
+    { id: 'shield_14', days: 14, shields: 1 },
+    { id: 'shield_30', days: 30, shields: 2 },
   ];
 
   const MAX_RANK = 99;
@@ -1596,7 +1594,8 @@
       streak: 0,
       bestStreak: 0,
       shields: 1, // start with one free shield so a single miss is kinder
-      titles: [],
+      titles: [], // legacy — streak titles removed for now
+      shieldClaims: [],
       boutsToday: 0,
       boutDay: null,
       lastConqueredDay: null,
@@ -2055,21 +2054,45 @@
     save();
   }
 
-  function awardMilestones() {
-    let gained = [];
-    for (const m of MILESTONES) {
-      if (state.streak >= m.days && !state.titles.includes(m.id)) {
-        state.titles.push(m.id);
-        if (m.shields > 0) state.shields += m.shields;
-        gained.push(m);
+  function ensureShieldClaims() {
+    if (!state) return;
+    if (!Array.isArray(state.shieldClaims)) {
+      // Migrate: old streak title ids that also granted shields
+      const claims = [];
+      const legacy = {
+        week_warrior: 'shield_7',
+        fortnight: 'shield_14',
+        unbreakable: 'shield_30',
+      };
+      if (Array.isArray(state.titles)) {
+        for (const t of state.titles) {
+          if (legacy[t]) claims.push(legacy[t]);
+        }
+      }
+      state.shieldClaims = claims;
+    }
+  }
+
+  /** One-time shield gifts at streak day thresholds (no titles). */
+  function awardStreakShields() {
+    ensureShieldClaims();
+    let gained = 0;
+    for (const m of STREAK_SHIELD_REWARDS) {
+      if (state.streak >= m.days && !state.shieldClaims.includes(m.id)) {
+        state.shieldClaims.push(m.id);
+        if (m.shields > 0) {
+          state.shields += m.shields;
+          gained += m.shields;
+        }
       }
     }
     return gained;
   }
 
-  function nextMilestone() {
-    for (const m of MILESTONES) {
-      if (!state.titles.includes(m.id)) return m;
+  function nextShieldReward() {
+    ensureShieldClaims();
+    for (const m of STREAK_SHIELD_REWARDS) {
+      if (!state.shieldClaims.includes(m.id)) return m;
     }
     return null;
   }
@@ -2267,17 +2290,23 @@
         ' Aura';
     }
 
-    const nm = nextMilestone();
-    if (nm) {
-      document.getElementById('hall-title-name').textContent = nm.title;
-      const pct = Math.min(100, (state.streak / nm.days) * 100);
-      document.getElementById('hall-title-bar').style.width = pct + '%';
-      document.getElementById('hall-title-meta').textContent =
-        state.streak + ' / ' + nm.days + ' streak days' + (nm.shields ? ' · +' + nm.shields + ' shield' : '');
-    } else {
-      document.getElementById('hall-title-name').textContent = 'All titles claimed';
-      document.getElementById('hall-title-bar').style.width = '100%';
-      document.getElementById('hall-title-meta').textContent = 'You are Unbreakable';
+    const hint = document.getElementById('hall-streak-hint');
+    if (hint) {
+      const nextShield = nextShieldReward();
+      if (nextShield) {
+        hint.textContent =
+          'Next Streak Shield at ' +
+          nextShield.days +
+          ' days (+' +
+          nextShield.shields +
+          ') · now ' +
+          state.streak +
+          ' day' +
+          (state.streak === 1 ? '' : 's');
+      } else {
+        hint.textContent =
+          'Long-streak shields claimed · keep the quest streak for max day bonus';
+      }
     }
 
     document.getElementById('hall-path-name').textContent = path.title;
@@ -2581,7 +2610,7 @@
         const dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
         state.aura += dayBonus;
 
-        const titles = awardMilestones();
+        const shieldsGained = awardStreakShields();
         msg =
           '🏰 Day Conquered! +' +
           boutGain +
@@ -2590,9 +2619,13 @@
           ' bonus (' +
           mult +
           '× streak)';
-        if (titles.length) {
-          msg += ' · Title: ' + titles.map((t) => t.title).join(', ');
-          if (titles.some((t) => t.shields)) msg += ' · Shields gained!';
+        if (shieldsGained > 0) {
+          msg +=
+            ' · +' +
+            shieldsGained +
+            ' Streak Shield' +
+            (shieldsGained > 1 ? 's' : '') +
+            '!';
         }
       }
     } else if (questAlreadyDone) {
@@ -2839,24 +2872,6 @@
       );
     }).join('');
 
-    const titles = MILESTONES.map((m) => {
-      const earned = state.titles.includes(m.id);
-      return (
-        '<div class="list-item' +
-        (earned ? '' : ' locked') +
-        '"><strong>' +
-        (earned ? '🏅 ' : '☆ ') +
-        m.title +
-        '</strong>' +
-        '<p class="muted" style="margin-top:4px;font-size:0.8rem">' +
-        m.days +
-        '-day streak' +
-        (m.shields ? ' · +' + m.shields + ' Streak Shield' : '') +
-        (earned ? ' · Earned' : ' · Locked') +
-        '</p></div>'
-      );
-    }).join('');
-    document.getElementById('rank-titles').innerHTML = titles;
   }
 
   function paintLeaderboard(board, myId) {
@@ -3380,11 +3395,11 @@
         '</strong> shield' +
         (shields === 1 ? '' : 's') +
         ' right now.</p>' +
-        '<p style="margin-bottom:10px;line-height:1.5">Earn more at title milestones:</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">Earn more at long quest streaks (one-time gifts):</p>' +
         '<ul class="steps" style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.55">' +
-        '<li>7-day streak → Week Warrior · <strong>+1 shield</strong></li>' +
-        '<li>14-day → Fortnight Knight · <strong>+1 shield</strong></li>' +
-        '<li>30-day → Unbreakable · <strong>+2 shields</strong></li>' +
+        '<li>7-day streak → <strong>+1 shield</strong></li>' +
+        '<li>14-day streak → <strong>+1 shield</strong></li>' +
+        '<li>30-day streak → <strong>+2 shields</strong></li>' +
         '</ul>' +
         '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">New pages start with 1 shield. Shields do not protect Aura — only the streak.</p>';
     } else {
