@@ -641,7 +641,7 @@
           <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
-            <li>Levels 1–99 · streaks · shields · ball mastery scrolls</li>
+            <li>Levels 1–99 · ranks · streak honors · ball mastery scrolls</li>
             <li>Squire → Grandmaster rank scrolls · growing library</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
@@ -668,8 +668,11 @@
           <p class="subtitle">Ball mastery · One ball · 5×5 arena<br/>Train as a knight. Rise through the ranks.</p>
         </div>
         <div class="card">
-          <label class="muted" for="input-name" style="display:block;margin-bottom:6px">Your name, page</label>
-          <input class="field" id="input-name" maxlength="18" placeholder="e.g. Sir Leo" autocomplete="nickname" />
+          <label class="muted" for="input-name" style="display:block;margin-bottom:6px">Your name (first name is fine)</label>
+          <input class="field" id="input-name" maxlength="18" placeholder="e.g. Ella" autocomplete="nickname" />
+          <p class="muted" style="margin-top:8px;font-size:0.75rem;line-height:1.4">
+            You’ll be introduced as <strong class="gold">Page Ella</strong> — add Sir/Lady and honors later.
+          </p>
           <p class="muted" style="margin-top:14px;margin-bottom:8px">Choose your emblem</p>
           <div class="emblem-grid" id="emblem-grid"></div>
         </div>
@@ -707,8 +710,8 @@
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
           <div class="crest crest-sm" id="hall-emblem">⚔️</div>
           <div style="flex:1;min-width:0">
-            <h1 style="font-size:1.25rem;color:var(--gold-bright)" id="hall-name">—</h1>
-            <p class="muted" id="hall-rankline">Level 1 · Page</p>
+            <h1 style="font-size:1.1rem;color:var(--gold-bright);line-height:1.25;word-break:break-word" id="hall-name">—</h1>
+            <p class="muted" id="hall-rankline">Level 1</p>
           </div>
           <div style="text-align:right">
             <div class="gold" style="font-family:var(--display);font-weight:700" id="hall-aura">0</div>
@@ -835,11 +838,17 @@
           <div class="list" id="rank-paths"></div>
         </div>
         <div class="card" style="margin-bottom:12px">
-          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">Titles</h3>
-          <p class="muted" style="font-size:0.8rem;line-height:1.45" id="honor-title-blurb">
-            <strong class="gold">Titles</strong> come from quest consistency (streaks) — separate from rank.
-            A cleaner honor system is coming; for now, long streaks still grant Streak Shields.
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:6px">Your proclamation</h3>
+          <p class="gold" style="font-weight:700;font-size:1.05rem;line-height:1.3;margin-bottom:10px" id="proc-preview">—</p>
+          <p class="muted" style="font-size:0.75rem;margin-bottom:10px;line-height:1.4">
+            <strong class="gold">Rank</strong> from level · <strong class="gold">style</strong> (Sir/Lady) · your <strong class="gold">name</strong> · <strong class="gold">honor</strong> from streaks
           </p>
+
+          <p class="muted" style="font-size:0.8rem;margin-bottom:6px">Style</p>
+          <div class="btn-row" id="style-prefix-row" style="margin-bottom:14px;flex-wrap:wrap;gap:6px"></div>
+
+          <p class="muted" style="font-size:0.8rem;margin-bottom:6px">Honor (from quest streaks)</p>
+          <div class="list" id="honor-list"></div>
         </div>
         <div class="card" style="margin-top:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">🛡️ Keep your progress</h3>
@@ -934,7 +943,7 @@
    * Design goals:
    * - Early ranks feel rewarding (love the ball / form the habit)
    * - ~15 min/day (3 short Squire bouts) is enough to progress
-   * - Higher rank titles unlock more scrolls and pay more Aura
+   * - Higher Order ranks unlock more scrolls and pay more Aura
    * - Grandmaster (97–99) is a long, serious journey — not a weekend grind
    */
   const AURA_DAY_BONUS_BASE = 50; // × streak mult on 3rd bout of the day
@@ -1085,13 +1094,91 @@
   const EMBLEMS = ['⚔️','🛡️','🦁','🐉','🦅','🔥','⚡','🌙','⭐','🏴'];
 
   /**
-   * Streak shield gifts (no named titles for now — revisit later).
-   * Claimed once when quest streak first hits `days`. Tracked by id in state.shieldClaims.
+   * STYLE PREFIXES — optional, always available (pick on Level tab).
+   * Proclamation: Rank + Style + Name + Honor
+   * e.g. "High Sage Sir Karl the Quick" · "Page Kevin" · "Squire Lady Ella the Brave"
    */
-  const STREAK_SHIELD_REWARDS = [
-    { id: 'shield_7', days: 7, shields: 1 },
-    { id: 'shield_14', days: 14, shields: 1 },
-    { id: 'shield_30', days: 30, shields: 2 },
+  const STYLE_PREFIXES = [
+    { id: '', label: 'None' },
+    { id: 'Sir', label: 'Sir' },
+    { id: 'Lady', label: 'Lady' },
+  ];
+
+  /**
+   * HONOR TITLES — earned by best quest streak (kept forever once unlocked).
+   * Player picks one active honor for their proclamation.
+   * shields: one-time Streak Shield gift when first unlocked (tracked in shieldClaims).
+   */
+  const HONOR_TITLES = [
+    {
+      id: 'brave',
+      days: 2,
+      epithet: 'the Brave',
+      blurb: 'Showed up day two. That counts.',
+    },
+    {
+      id: 'steady',
+      days: 3,
+      epithet: 'the Steady',
+      blurb: 'Three days of the quest.',
+    },
+    {
+      id: 'quick',
+      days: 4,
+      epithet: 'the Quick',
+      blurb: 'Four days — feet finding rhythm.',
+    },
+    {
+      id: 'grass',
+      days: 5,
+      epithet: 'the Grass-Stained',
+      blurb: 'Proof lives on the socks.',
+    },
+    {
+      id: 'relentless',
+      days: 7,
+      epithet: 'the Relentless',
+      blurb: 'A full week conquered.',
+      shields: 1,
+    },
+    {
+      id: 'iron',
+      days: 14,
+      epithet: 'the Iron',
+      blurb: 'A fortnight of the Order.',
+      shields: 1,
+    },
+    {
+      id: 'stubborn',
+      days: 21,
+      epithet: 'the Stubborn',
+      blurb: 'Three weeks. The ball has opinions about you now.',
+    },
+    {
+      id: 'unbroken',
+      days: 30,
+      epithet: 'the Unbroken',
+      blurb: 'A moon of quests.',
+      shields: 2,
+    },
+    {
+      id: 'seasoned',
+      days: 60,
+      epithet: 'the Seasoned',
+      blurb: 'Two moons of mastery.',
+    },
+    {
+      id: 'ballmad',
+      days: 90,
+      epithet: 'the Ball-Mad',
+      blurb: 'Friends are concerned. Respectfully.',
+    },
+    {
+      id: 'tireless',
+      days: 100,
+      epithet: 'the Tireless',
+      blurb: 'A hundred days of the ball.',
+    },
   ];
 
   const MAX_RANK = 99;
@@ -1600,12 +1687,17 @@
   function defaultState() {
     return {
       name: '',
+      /** Optional: '' | 'Sir' | 'Lady' */
+      stylePrefix: '',
+      /** Active honor id from HONOR_TITLES, or '' for none */
+      activeHonor: '',
       emblem: '⚔️',
       aura: 0,
       streak: 0,
       bestStreak: 0,
       shields: 1, // start with one free shield so a single miss is kinder
-      titles: [], // legacy — streak titles removed for now
+      titles: [], // legacy
+      /** Honor ids (and legacy shield_*) that already paid shield gifts */
       shieldClaims: [],
       boutsToday: 0,
       boutDay: null,
@@ -1872,7 +1964,7 @@
     return RANK_SCROLLS.find((p) => p.id === rankId) || null;
   }
 
-  /** Aura for completing a scroll under this rank title (higher ranks pay more). */
+  /** Aura for completing a scroll under this Order rank (higher ranks pay more). */
   function getScrollAura(rankId) {
     const group = getRankGroup(rankId);
     if (group && group.auraReward) return group.auraReward;
@@ -1944,9 +2036,9 @@
   }
 
   /**
-   * ORDER RANK (from level) — not streak titles.
-   * Level = 1–99 number · Rank = Page / Squire / Knight / High Legend …
-   * Title (later) = honor from quest consistency streaks.
+   * ORDER RANK (from level) — not streak honors.
+   * Level = 1–99 · Rank = Page / Squire / Knight / High Legend …
+   * Honor = epithet from quest streak (the Brave, the Relentless…)
    *
    * Page 1–4 · Squire 5–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
    * High Legend 63 · Sage 70 · High Sage 77 · Sentinel 83 · Paragon 90 · Grandmaster 97
@@ -1962,8 +2054,69 @@
     if (rank >= 40) return 'Champion of the Order';
     if (rank >= 30) return 'Guardian of the Order';
     if (rank >= 10) return 'Knight of the Order';
-    if (rank >= 5) return 'Squire of the Order'; // ranks 5–9
-    return 'Page of the Order'; // ranks 1–4
+    if (rank >= 5) return 'Squire of the Order'; // levels 5–9
+    return 'Page of the Order'; // levels 1–4
+  }
+
+  function rankShort(level) {
+    return rankBand(level).replace(' of the Order', '');
+  }
+
+  function getHonorById(id) {
+    if (!id) return null;
+    return HONOR_TITLES.find((h) => h.id === id) || null;
+  }
+
+  /** Honors unlocked by best streak (kept even if current streak drops). */
+  function earnedHonors() {
+    if (!state) return [];
+    const best = Math.max(0, state.bestStreak || 0);
+    return HONOR_TITLES.filter((h) => best >= h.days);
+  }
+
+  function honorUnlocked(h) {
+    if (!state || !h) return false;
+    return (state.bestStreak || 0) >= h.days;
+  }
+
+  /**
+   * Full proclamation: Rank [Style] Name [Honor]
+   * e.g. "Squire Lady Ella the Brave" · "Page Kevin"
+   */
+  function formatProclamation() {
+    if (!state || !state.name) return '—';
+    const level = rankFromAura(state.aura);
+    const parts = [rankShort(level)];
+    const prefix = (state.stylePrefix || '').trim();
+    if (prefix) parts.push(prefix);
+    parts.push(state.name);
+    const honor = getHonorById(state.activeHonor);
+    if (honor && honorUnlocked(honor)) {
+      parts.push(honor.epithet);
+    }
+    return parts.join(' ');
+  }
+
+  function ensureHonorState() {
+    if (!state) return;
+    if (state.stylePrefix == null) state.stylePrefix = '';
+    if (state.activeHonor == null) state.activeHonor = '';
+    // Drop active honor if no longer valid (shouldn't happen — best-based)
+    if (state.activeHonor && !honorUnlocked(getHonorById(state.activeHonor))) {
+      state.activeHonor = '';
+    }
+    // Retroactive shield gifts if best streak already qualifies (migration / old saves)
+    ensureShieldClaims();
+    const best = state.bestStreak || 0;
+    let dirty = false;
+    for (const h of HONOR_TITLES) {
+      if (h.shields && best >= h.days && !state.shieldClaims.includes(h.id)) {
+        state.shieldClaims.push(h.id);
+        state.shields += h.shields;
+        dirty = true;
+      }
+    }
+    if (dirty) save();
   }
 
   function auraProgress(aura) {
@@ -1982,7 +2135,7 @@
     return rank >= group.unlockRank;
   }
 
-  /** Highest unlocked rank title (may have empty scrolls[]). */
+  /** Highest unlocked Order rank group (may have empty scrolls[]). */
   function highestUnlockedGroup(rank) {
     let p = RANK_SCROLLS[0];
     for (const group of RANK_SCROLLS) {
@@ -2068,42 +2221,60 @@
   function ensureShieldClaims() {
     if (!state) return;
     if (!Array.isArray(state.shieldClaims)) {
-      // Migrate: old streak title ids that also granted shields
       const claims = [];
       const legacy = {
-        week_warrior: 'shield_7',
-        fortnight: 'shield_14',
-        unbreakable: 'shield_30',
+        week_warrior: 'relentless',
+        fortnight: 'iron',
+        unbreakable: 'unbroken',
+        shield_7: 'relentless',
+        shield_14: 'iron',
+        shield_30: 'unbroken',
       };
       if (Array.isArray(state.titles)) {
         for (const t of state.titles) {
-          if (legacy[t]) claims.push(legacy[t]);
+          if (legacy[t] && !claims.includes(legacy[t])) claims.push(legacy[t]);
         }
       }
       state.shieldClaims = claims;
     }
   }
 
-  /** One-time shield gifts at streak day thresholds (no titles). */
-  function awardStreakShields() {
+  /**
+   * On day conquer after streak/best updated.
+   * prevBest = bestStreak before this conquest.
+   * Unlocks honors by best streak; shield gifts once; auto-equips first honor only.
+   */
+  function awardHonorsAndShields(prevBest) {
     ensureShieldClaims();
-    let gained = 0;
-    for (const m of STREAK_SHIELD_REWARDS) {
-      if (state.streak >= m.days && !state.shieldClaims.includes(m.id)) {
-        state.shieldClaims.push(m.id);
-        if (m.shields > 0) {
-          state.shields += m.shields;
-          gained += m.shields;
-        }
+    ensureHonorState();
+    const before = Math.max(0, prevBest || 0);
+    const best = Math.max(0, state.bestStreak || 0);
+    const newHonors = HONOR_TITLES.filter(
+      (h) => best >= h.days && before < h.days
+    );
+    let shieldsGained = 0;
+
+    for (const h of HONOR_TITLES) {
+      if (h.shields && best >= h.days && !state.shieldClaims.includes(h.id)) {
+        state.shieldClaims.push(h.id);
+        state.shields += h.shields;
+        shieldsGained += h.shields;
       }
     }
-    return gained;
+
+    // First honor ever → auto-equip; later the player picks on the Level tab
+    if (newHonors.length && !state.activeHonor) {
+      state.activeHonor = newHonors[newHonors.length - 1].id;
+    }
+
+    return { newHonors, shieldsGained };
   }
 
-  function nextShieldReward() {
-    ensureShieldClaims();
-    for (const m of STREAK_SHIELD_REWARDS) {
-      if (!state.shieldClaims.includes(m.id)) return m;
+  function nextHonorReward() {
+    if (!state) return null;
+    const best = state.bestStreak || 0;
+    for (const h of HONOR_TITLES) {
+      if (best < h.days) return h;
     }
     return null;
   }
@@ -2211,9 +2382,11 @@
     const rank = rankFromAura(state.aura);
     const path = highestUnlockedGroup(rank);
     const prog = auraProgress(state.aura);
+    ensureHonorState();
     document.getElementById('hall-emblem').textContent = state.emblem;
-    document.getElementById('hall-name').textContent = state.name;
-    document.getElementById('hall-rankline').textContent = 'Level ' + rank + ' · ' + rankBand(rank);
+    document.getElementById('hall-name').textContent = formatProclamation();
+    document.getElementById('hall-rankline').textContent =
+      'Level ' + rank + ' · best streak ' + (state.bestStreak || 0) + 'd';
     document.getElementById('hall-aura').textContent = state.aura.toLocaleString();
     document.getElementById('hall-streak').textContent = String(state.streak);
     document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
@@ -2303,26 +2476,25 @@
 
     const hint = document.getElementById('hall-streak-hint');
     if (hint) {
-      const nextShield = nextShieldReward();
-      if (nextShield) {
+      const nextH = nextHonorReward();
+      if (nextH) {
         hint.textContent =
-          'Next Streak Shield at ' +
-          nextShield.days +
-          ' days (+' +
-          nextShield.shields +
-          ') · now ' +
-          state.streak +
-          ' day' +
-          (state.streak === 1 ? '' : 's');
+          'Next honor at ' +
+          nextH.days +
+          '-day best streak: ' +
+          nextH.epithet +
+          ' · now best ' +
+          (state.bestStreak || 0) +
+          'd';
       } else {
         hint.textContent =
-          'Long-streak shields claimed · keep the quest streak for max day bonus';
+          'All honors unlocked · keep the quest streak for max day bonus';
       }
     }
 
     document.getElementById('hall-path-name').textContent = path.title;
     document.getElementById('hall-path-focus').textContent =
-      path.focus + ' · new rank scrolls unlock as you rise';
+      path.focus + ' · higher ranks unlock more scrolls';
   }
 
   function pickDrill() {
@@ -2615,13 +2787,14 @@
           state.streak = 1;
         }
         state.lastConqueredDay = today;
+        const prevBest = state.bestStreak || 0;
         if (state.streak > state.bestStreak) state.bestStreak = state.streak;
 
         const mult = streakMultiplier(state.streak);
         const dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
         state.aura += dayBonus;
 
-        const shieldsGained = awardStreakShields();
+        const awarded = awardHonorsAndShields(prevBest);
         msg =
           '🏰 Day Conquered! +' +
           boutGain +
@@ -2630,12 +2803,17 @@
           ' bonus (' +
           mult +
           '× streak)';
-        if (shieldsGained > 0) {
+        if (awarded.newHonors.length) {
+          msg +=
+            ' · Honor: ' +
+            awarded.newHonors.map((h) => h.epithet).join(', ');
+        }
+        if (awarded.shieldsGained > 0) {
           msg +=
             ' · +' +
-            shieldsGained +
+            awarded.shieldsGained +
             ' Streak Shield' +
-            (shieldsGained > 1 ? 's' : '') +
+            (awarded.shieldsGained > 1 ? 's' : '') +
             '!';
         }
       }
@@ -2839,6 +3017,7 @@
   }
 
   function renderRank() {
+    ensureHonorState();
     const prog = auraProgress(state.aura);
     document.getElementById('rank-emblem').textContent = state.emblem;
     document.getElementById('rank-title').textContent = 'Level ' + prog.rank;
@@ -2858,10 +3037,78 @@
         ' to Level ' +
         nextRank +
         ' (' +
-        rankBand(nextRank).replace(' of the Order', '') +
+        rankShort(nextRank) +
         ')';
     }
     document.getElementById('rank-aura-bar').style.width = prog.pct + '%';
+
+    const preview = document.getElementById('proc-preview');
+    if (preview) preview.textContent = formatProclamation();
+
+    const styleRow = document.getElementById('style-prefix-row');
+    if (styleRow) {
+      styleRow.innerHTML = STYLE_PREFIXES.map((s) => {
+        const active = (state.stylePrefix || '') === s.id;
+        return (
+          '<button type="button" class="btn ' +
+          (active ? 'btn-gold' : 'btn-ghost') +
+          '" style="width:auto;padding:8px 12px;font-size:0.8rem" data-style-prefix="' +
+          s.id +
+          '">' +
+          s.label +
+          '</button>'
+        );
+      }).join('');
+    }
+
+    const honorList = document.getElementById('honor-list');
+    if (honorList) {
+      let html =
+        '<button type="button" class="list-item' +
+        (!state.activeHonor ? ' completed' : '') +
+        '" data-honor="">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px"><strong>No honor</strong>' +
+        '<span class="tag' +
+        (!state.activeHonor ? ' done' : '') +
+        '">' +
+        (!state.activeHonor ? 'Active' : 'Use') +
+        '</span></div>' +
+        '<p class="muted" style="margin-top:4px;font-size:0.8rem">Just Rank + name' +
+        (state.stylePrefix ? ' (with ' + state.stylePrefix + ')' : '') +
+        '</p></button>';
+
+      for (const h of HONOR_TITLES) {
+        const unlocked = honorUnlocked(h);
+        const active = state.activeHonor === h.id;
+        html +=
+          '<button type="button" class="list-item' +
+          (active ? ' completed' : '') +
+          (unlocked ? '' : ' locked') +
+          '" data-honor="' +
+          h.id +
+          '"' +
+          (unlocked ? '' : ' disabled') +
+          '>' +
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong>' +
+          h.epithet +
+          '</strong>' +
+          '<span class="tag' +
+          (active ? ' done' : '') +
+          '">' +
+          (active ? 'Active' : unlocked ? 'Use' : h.days + 'd') +
+          '</span></div>' +
+          '<p class="muted" style="margin-top:4px;font-size:0.8rem">' +
+          (unlocked
+            ? h.blurb +
+              (h.shields ? ' · earned +' + h.shields + ' shield' : '')
+            : '🔒 Best streak ' +
+              h.days +
+              ' days' +
+              (h.shields ? ' · +' + h.shields + ' shield' : '')) +
+          '</p></button>';
+      }
+      honorList.innerHTML = html;
+    }
 
     document.getElementById('rank-paths').innerHTML = RANK_SCROLLS.map((p) => {
       const ok = rankGroupUnlocked(p, prog.rank);
@@ -2882,7 +3129,6 @@
         ' Aura each</p></div>'
       );
     }).join('');
-
   }
 
   function paintLeaderboard(board, myId) {
@@ -2952,7 +3198,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           playerId: ensurePlayerId(),
-          name: state.name,
+          name: formatProclamation(),
           emblem: state.emblem,
           aura: state.aura,
           rank: rank,
@@ -2978,9 +3224,11 @@
 
   function renderArena() {
     const rank = rankFromAura(state.aura);
+    ensureHonorState();
     document.getElementById('arena-emblem').textContent = state.emblem;
-    document.getElementById('arena-name').textContent = state.name;
-    document.getElementById('arena-rank').textContent = 'Level ' + rank + ' · ' + rankBand(rank);
+    document.getElementById('arena-name').textContent = formatProclamation();
+    document.getElementById('arena-rank').textContent =
+      'Level ' + rank + ' · ' + rankBand(rank);
     document.getElementById('arena-stats').textContent =
       state.aura.toLocaleString() + ' Aura · ' + state.streak + ' day streak · Best ' + state.bestStreak;
     ensurePlayerId();
@@ -2990,11 +3238,9 @@
   async function shareCard() {
     const text =
       'I am ' +
-      state.name +
+      formatProclamation() +
       ' — Level ' +
       rankFromAura(state.aura) +
-      ' ' +
-      rankBand(rankFromAura(state.aura)) +
       ' in the Order of the Ball. ' +
       state.aura +
       ' Aura · ' +
@@ -3268,6 +3514,34 @@
 
     on('btn-begin', 'click', beginOrder);
 
+    on('style-prefix-row', 'click', (e) => {
+      const btn = e.target.closest('[data-style-prefix]');
+      if (!btn || !state) return;
+      state.stylePrefix = btn.getAttribute('data-style-prefix') || '';
+      save();
+      renderRank();
+      // Keep Hall in sync if they go back
+      const hallName = document.getElementById('hall-name');
+      if (hallName) hallName.textContent = formatProclamation();
+      toast(formatProclamation());
+    });
+
+    on('honor-list', 'click', (e) => {
+      const btn = e.target.closest('[data-honor]');
+      if (!btn || !state || btn.disabled) return;
+      const id = btn.getAttribute('data-honor') || '';
+      if (id && !honorUnlocked(getHonorById(id))) {
+        toast('Keep your quest streak to unlock this honor.');
+        return;
+      }
+      state.activeHonor = id;
+      save();
+      renderRank();
+      const hallName = document.getElementById('hall-name');
+      if (hallName) hallName.textContent = formatProclamation();
+      toast(formatProclamation());
+    });
+
     on('btn-tut-next', 'click', tutorialNext);
     on('btn-tut-skip', 'click', () => {
       if (confirm('Skip the tutorial and enter the Hall as a Page? (No practice Aura.)'))
@@ -3406,13 +3680,13 @@
         '</strong> shield' +
         (shields === 1 ? '' : 's') +
         ' right now.</p>' +
-        '<p style="margin-bottom:10px;line-height:1.5">Earn more at long quest streaks (one-time gifts):</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">Earn more with long <strong class="gold">best</strong> quest streaks (one-time gifts with honors):</p>' +
         '<ul class="steps" style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.55">' +
-        '<li>7-day streak → <strong>+1 shield</strong></li>' +
-        '<li>14-day streak → <strong>+1 shield</strong></li>' +
-        '<li>30-day streak → <strong>+2 shields</strong></li>' +
+        '<li>7 days → the Relentless · <strong>+1 shield</strong></li>' +
+        '<li>14 days → the Iron · <strong>+1 shield</strong></li>' +
+        '<li>30 days → the Unbroken · <strong>+2 shields</strong></li>' +
         '</ul>' +
-        '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">New pages start with 1 shield. Shields do not protect Aura — only the streak.</p>';
+        '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">New pages start with 1 shield. Pick honors on the Level tab. Shields do not protect Aura — only the streak.</p>';
     } else {
       return;
     }
