@@ -647,6 +647,16 @@
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Titles earned</h3>
           <div class="list" id="rank-titles"></div>
         </div>
+        <div class="card" style="margin-top:12px">
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">🛡️ Keep your progress</h3>
+          <p class="muted" style="font-size:0.8rem;margin-bottom:10px">
+            Progress is saved on <strong>this browser / device</strong>. Use the same link every time.
+            Copy a backup scroll if you change phones.
+          </p>
+          <button type="button" class="btn btn-royal" id="btn-export-save">Copy backup scroll</button>
+          <button type="button" class="btn btn-ghost" style="margin-top:8px" id="btn-import-save">Restore from scroll</button>
+          <p class="muted" style="font-size:0.72rem;margin-top:8px" id="save-status"></p>
+        </div>
       </div>
     </section>
 
@@ -727,11 +737,17 @@
     return Boolean(getUnlockToken());
   }
 
-  function enterApp() {
+  async function enterApp() {
     document.getElementById('main-nav').classList.add('visible');
-    state = load();
+    state = await loadWithFallback();
+    // Recover unlock from IndexedDB if localStorage lost it
+    if (!getUnlockToken()) {
+      const tok = await idbGet(UNLOCK_KEY);
+      if (tok && typeof tok === 'string') setUnlockToken(tok);
+    }
     if (state && state.name) {
       ensureDayBoundary();
+      save(); // re-mirror to both stores
       showScreen('hall');
     } else {
       document.getElementById('main-nav').classList.remove('visible');
@@ -762,9 +778,14 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Verification failed');
       setUnlockToken(data.token);
+      try {
+        idbSet(UNLOCK_KEY, data.token);
+      } catch (e) {
+        /* ignore */
+      }
       history.replaceState({}, '', window.location.pathname);
       toast('Lifetime access unlocked. Welcome to the Order.');
-      enterApp();
+      await enterApp();
       return true;
     } catch (err) {
       if (status) status.textContent = err.message || 'Could not verify payment.';
@@ -812,8 +833,13 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Invalid code');
       setUnlockToken(data.token);
+      try {
+        idbSet(UNLOCK_KEY, data.token);
+      } catch (e) {
+        /* ignore */
+      }
       toast('Access granted.');
-      enterApp();
+      await enterApp();
     } catch (err) {
       status.textContent = err.message || 'Invalid code';
       toast(err.message || 'Invalid code');
@@ -1245,7 +1271,7 @@
       aura: 0,
       streak: 0,
       bestStreak: 0,
-      shields: 0,
+      shields: 1, // start with one free shield so a single miss is kinder
       titles: [],
       boutsToday: 0,
       boutDay: null,
@@ -1256,18 +1282,154 @@
     };
   }
 
+  const IDB_NAME = 'OrderOfTheBallDB';
+  const IDB_STORE = 'saves';
+
+  function idbAvailable() {
+    try {
+      return typeof indexedDB !== 'undefined';
+    } catch {
+      return false;
+    }
+  }
+
+  function idbSet(key, value) {
+    if (!idbAvailable()) return;
+    try {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = function () {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+      };
+      req.onsuccess = function () {
+        try {
+          const db = req.result;
+          const tx = db.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).put(value, key);
+        } catch (e) {
+          /* ignore */
+        }
+      };
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function idbGet(key) {
+    return new Promise(function (resolve) {
+      if (!idbAvailable()) return resolve(null);
+      try {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onerror = function () {
+          resolve(null);
+        };
+        req.onupgradeneeded = function () {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+        };
+        req.onsuccess = function () {
+          try {
+            const db = req.result;
+            const tx = db.transaction(IDB_STORE, 'readonly');
+            const g = tx.objectStore(IDB_STORE).get(key);
+            g.onsuccess = function () {
+              resolve(g.result || null);
+            };
+            g.onerror = function () {
+              resolve(null);
+            };
+          } catch (e) {
+            resolve(null);
+          }
+        };
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
-      return Object.assign(defaultState(), JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      const s = Object.assign(defaultState(), parsed);
+      // Don't overwrite shields:0 from old saves with default 1 if they had 0 intentionally
+      if (parsed && Object.prototype.hasOwnProperty.call(parsed, 'shields')) {
+        s.shields = parsed.shields;
+      }
+      return s;
     } catch {
       return null;
     }
   }
 
+  async function loadWithFallback() {
+    let s = load();
+    if (s && s.name) return s;
+    const fromIdb = await idbGet(STORAGE_KEY);
+    if (fromIdb && typeof fromIdb === 'object' && fromIdb.name) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fromIdb));
+      } catch (e) {
+        /* ignore */
+      }
+      const merged = Object.assign(defaultState(), fromIdb);
+      if (Object.prototype.hasOwnProperty.call(fromIdb, 'shields')) {
+        merged.shields = fromIdb.shields;
+      }
+      toast('Progress restored from backup vault.');
+      return merged;
+    }
+    return s;
+  }
+
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (!state) return;
+    const raw = JSON.stringify(state);
+    try {
+      localStorage.setItem(STORAGE_KEY, raw);
+    } catch (e) {
+      toast('Warning: could not save to browser storage.');
+      console.warn(e);
+    }
+    idbSet(STORAGE_KEY, state);
+    // Keep unlock in the same vault for recovery
+    try {
+      const tok = getUnlockToken();
+      if (tok) idbSet(UNLOCK_KEY, tok);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function exportSaveScroll() {
+    const payload = {
+      v: 1,
+      product: 'order-of-the-ball',
+      state: state,
+      unlock: getUnlockToken() || null,
+      exportedAt: new Date().toISOString(),
+    };
+    const text = 'OOTB1.' + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    return text;
+  }
+
+  function importSaveScroll(text) {
+    try {
+      const t = String(text || '').trim();
+      if (!t.startsWith('OOTB1.')) throw new Error('Not a valid backup scroll');
+      const json = decodeURIComponent(escape(atob(t.slice(6))));
+      const payload = JSON.parse(json);
+      if (!payload.state || !payload.state.name) throw new Error('Backup has no knight profile');
+      state = Object.assign(defaultState(), payload.state);
+      if (payload.unlock) setUnlockToken(payload.unlock);
+      save();
+      return true;
+    } catch (e) {
+      toast(e.message || 'Could not restore backup');
+      return false;
+    }
   }
 
   function todayKey() {
@@ -1385,7 +1547,10 @@
   }
 
   function ensureDayBoundary() {
+    if (!state) return;
     const today = todayKey();
+
+    // New calendar day → reset today's bout counter only (never wipe Aura/rank)
     if (state.boutDay !== today) {
       state.boutsToday = 0;
       state.boutDay = today;
@@ -1399,11 +1564,21 @@
 
     if (state.lastSeenDay === today) return;
 
-    // Apply streak shields for missed days between lastConquered and yesterday
-    if (state.lastConqueredDay) {
+    // Streak protection: only if they already had a quest streak going
+    // Missed days = full days between last Day Conquered and today (not counting today)
+    if (state.lastConqueredDay && state.streak > 0) {
       const gap = daysBetween(state.lastConqueredDay, today) - 1;
       if (gap > 0) {
         let missed = gap;
+        // 1 free grace day (habit apps are kinder to kids/families)
+        if (missed > 0) {
+          missed -= 1;
+          if (gap === 1) {
+            toast('Grace day used — streak holds. Conquer today to keep it!');
+          } else {
+            toast('Grace day used for one missed day.');
+          }
+        }
         let used = 0;
         while (missed > 0 && state.shields > 0) {
           state.shields -= 1;
@@ -1411,10 +1586,16 @@
           used += 1;
         }
         if (used > 0) {
-          toast('🛡️ Streak Shield' + (used > 1 ? 's' : '') + ' held the line!');
+          toast(
+            '🛡️ Streak Shield' +
+              (used > 1 ? 's' : '') +
+              ' held the line!'
+          );
         }
         if (missed > 0) {
-          if (state.streak > 0) toast('Quest streak broken… rise again, knight.');
+          if (state.streak > 0) {
+            toast('Quest streak broken… Aura and rank are safe. Rise again!');
+          }
           state.streak = 0;
         }
       }
@@ -2165,11 +2346,48 @@
     document.getElementById('btn-buy').addEventListener('click', startCheckout);
     document.getElementById('btn-redeem-code').addEventListener('click', redeemCode);
 
+    document.getElementById('btn-export-save').addEventListener('click', async () => {
+      if (!state || !state.name) {
+        toast('Create a profile first.');
+        return;
+      }
+      save();
+      const text = exportSaveScroll();
+      const status = document.getElementById('save-status');
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = 'Backup scroll copied. Save it in Notes or email it to yourself.';
+        toast('Backup scroll copied!');
+      } catch {
+        prompt('Copy this backup scroll:', text);
+        status.textContent = 'Copy the scroll from the prompt and store it safely.';
+      }
+    });
+
+    document.getElementById('btn-import-save').addEventListener('click', () => {
+      const text = prompt('Paste your backup scroll:');
+      if (!text) return;
+      if (importSaveScroll(text)) {
+        document.getElementById('save-status').textContent = 'Progress restored.';
+        toast('Progress restored!');
+        document.getElementById('main-nav').classList.add('visible');
+        ensureDayBoundary();
+        showScreen('hall');
+        renderRank();
+      }
+    });
+
     // Returning from Stripe Checkout
     if (await verifySessionFromUrl()) return;
 
+    // Prefer dual-store unlock recovery
+    if (!isUnlocked()) {
+      const tok = await idbGet(UNLOCK_KEY);
+      if (tok && typeof tok === 'string') setUnlockToken(tok);
+    }
+
     if (isUnlocked()) {
-      enterApp();
+      await enterApp();
       return;
     }
 
