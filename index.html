@@ -678,7 +678,7 @@
       </div>
     </section>
 
-    <!-- TUTORIAL (Page → Squire) -->
+    <!-- TUTORIAL (Page orientation) -->
     <section class="screen" id="screen-tutorial">
       <div class="screen-scroll" style="display:flex;flex-direction:column;justify-content:center;gap:16px;padding-top:16px;">
         <div style="text-align:center">
@@ -1644,6 +1644,7 @@
     return state.playerId;
   }
 
+  /** Short practice bout in the tutorial (not a full scroll). */
   const TUTORIAL_DRILL = {
     title: 'Page’s First Touches',
     setup: 'One ball · stand in a small square (about 5×5)',
@@ -1656,6 +1657,10 @@
     counsel: 'Every knight was once a page. Slow and proud beats fast and sloppy.',
     timing: { workSec: 20, restSec: 10, rounds: 2 },
   };
+
+  /** Aura for finishing the tutorial practice (~half a Squire scroll; short bout). Skip earns nothing. */
+  const TUTORIAL_AURA_COMPLETE = 20;
+  const TUTORIAL_AURA_SKIP = 0;
 
   let tutStep = 0;
   let tutTimer = {
@@ -1930,8 +1935,11 @@
 
   /**
    * Rank title ladder (1–99) — Grandmaster is the end (97–99).
-   * Page 1 · Squire 2–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
+   * Page 1–4 · Squire 5–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
    * High Legend 63 · Sage 70 · High Sage 77 · Sentinel 83 · Paragon 90 · Grandmaster 97
+   *
+   * Page is a real early band (not a one-rank flash). Tutorial only awards a small
+   * Aura gift — it does not auto-promote to Squire.
    */
   function rankBand(rank) {
     if (rank >= 97) return 'Grandmaster of the Order';
@@ -1944,8 +1952,8 @@
     if (rank >= 40) return 'Champion of the Order';
     if (rank >= 30) return 'Guardian of the Order';
     if (rank >= 10) return 'Knight of the Order';
-    if (rank >= 2) return 'Squire of the Order'; // ranks 2–9
-    return 'Page of the Order'; // rank 1 only
+    if (rank >= 5) return 'Squire of the Order'; // ranks 5–9
+    return 'Page of the Order'; // ranks 1–4
   }
 
   function auraProgress(aura) {
@@ -2079,7 +2087,7 @@
 
   function celebrateRankUp(fromRank, toRank) {
     if (!toRank || toRank <= fromRank) return;
-    // Queue multi-rank jumps (e.g. tutorial Page → Squire)
+    // Queue multi-rank jumps (e.g. big Aura grants)
     for (let r = fromRank + 1; r <= toRank; r++) {
       rankUpQueue.push({ from: r - 1, to: r });
     }
@@ -3108,8 +3116,8 @@
       tag.textContent = 'Step 1 of 4';
       title.textContent = 'Welcome, Page ' + (state.name || '');
       body.innerHTML =
-        'You begin as a <strong class="gold">Page</strong> — the first step in the Order.<br><br>' +
-        'This short tutorial will teach the basics and raise you to <strong class="gold">Squire</strong> (Rank 2).';
+        'You begin as a <strong class="gold">Page</strong> — ranks 1–4 in the Order.<br><br>' +
+        'This short tutorial teaches the basics. You earn a little <strong class="gold">Aura</strong> for the practice, then train your way up to <strong class="gold">Squire</strong> and beyond.';
       next.textContent = 'How do I train?';
     } else if (tutStep === 1) {
       tag.textContent = 'Step 2 of 4';
@@ -3134,25 +3142,26 @@
         TUTORIAL_DRILL.steps.map((s) => '• ' + s).join('<br>') +
         '<br><br><em class="gold">Knight’s counsel:</em> ' +
         TUTORIAL_DRILL.counsel +
-        '<br><br>Run the short timer below (2 work rounds). Then we’ll promote you.';
+        '<br><br>Run the short timer below (2 work rounds). Completing it earns a small Aura gift.';
       mini.style.display = '';
       resetTutTimer();
       next.textContent = 'Finish practice first…';
       next.disabled = true;
     } else if (tutStep === 3) {
       tag.textContent = 'Step 4 of 4';
-      title.textContent = 'Rise to Squire';
-      const need = auraNeededForRank(2);
+      title.textContent = 'Enter the Hall';
       body.innerHTML =
-        'You have proven yourself.<br><br>' +
-        'We grant you enough <strong class="gold">Aura</strong> to leave Page behind and stand as a <strong class="gold">Squire of the Order</strong> (Rank 2).<br><br>' +
-        'From the Hall: train 3 bouts a day, open Scrolls by rank, and climb toward Knight and beyond.';
+        'Solid first steps, Page.<br><br>' +
+        'You earn <strong class="gold">+' +
+        TUTORIAL_AURA_COMPLETE +
+        ' Aura</strong> for the practice — enough to feel progress, not a free rank-up.<br><br>' +
+        'From the Hall: train <strong class="gold">3 bouts a day</strong>, open Scrolls, and climb through Page into <strong class="gold">Squire</strong> (Rank 5+) and beyond.';
       card.style.display = '';
       card.innerHTML =
         '<p class="gold" style="font-weight:700;text-align:center">+' +
-        need +
-        ' Aura · Rank 2 · Squire</p>' +
-        '<p class="muted" style="text-align:center;margin-top:8px;font-size:0.8rem">You also keep your starting Streak Shield.</p>';
+        TUTORIAL_AURA_COMPLETE +
+        ' Aura · still Page</p>' +
+        '<p class="muted" style="text-align:center;margin-top:8px;font-size:0.8rem">You keep your starting Streak Shield. Squire comes from real training.</p>';
       next.textContent = 'Enter the Hall';
       skip.style.display = 'none';
     }
@@ -3169,12 +3178,10 @@
     stopTutTimer();
     if (!state) return;
     const prevAura = state.aura;
-    // Promote to Squire (Rank 2) — exact Aura threshold
-    const squireAura = auraNeededForRank(2);
-    if (state.aura < squireAura) state.aura = squireAura;
+    // Small Aura gift only — no free rank jump to Squire
+    const reward = skipped ? TUTORIAL_AURA_SKIP : TUTORIAL_AURA_COMPLETE;
+    if (reward > 0) state.aura += reward;
     state.tutorialDone = true;
-    // Gentle head start for the first day feel without auto-conquering
-    if (!state.totalBouts) state.totalBouts = 0;
     save();
     document.getElementById('main-nav').classList.add('visible');
     showScreen('hall');
@@ -3182,8 +3189,8 @@
     if (!ranked) {
       toast(
         skipped
-          ? 'Squire rank granted. The Hall awaits, ' + state.name + '!'
-          : 'You are Squire ' + state.name + '!'
+          ? 'Welcome to the Hall, Page ' + state.name + '!'
+          : 'Practice complete! +' + reward + ' Aura · Welcome, Page ' + state.name + '!'
       );
     }
   }
@@ -3237,7 +3244,8 @@
 
     on('btn-tut-next', 'click', tutorialNext);
     on('btn-tut-skip', 'click', () => {
-      if (confirm('Skip the tutorial and become a Squire now?')) finishTutorial(true);
+      if (confirm('Skip the tutorial and enter the Hall as a Page? (No practice Aura.)'))
+        finishTutorial(true);
     });
     on('btn-tut-timer', 'click', () => {
       if (tutTimer.finished) return;
