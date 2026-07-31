@@ -573,6 +573,19 @@
         </div>
 
         <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px">
+            <h2 style="font-size:1rem;color:var(--gold);margin:0">Rank progress</h2>
+            <span class="muted" style="font-size:0.75rem" id="hall-rank-next-label">Next: Rank 2</span>
+          </div>
+          <div class="bar" style="height:12px"><i id="hall-rank-bar" style="width:0%"></i></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:0.8rem">
+            <span class="gold" id="hall-rank-aura-meta">0 / 100 Aura</span>
+            <span class="muted" id="hall-rank-to-go">— to next rank</span>
+          </div>
+          <p class="muted" style="margin-top:6px;font-size:0.75rem" id="hall-rank-bout-hint">About — more bout(s) at +40 Aura each</p>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <h2 style="font-size:1rem;color:var(--gold)">Today’s Quest</h2>
             <span class="tag" id="hall-day-status">In progress</span>
@@ -1759,6 +1772,7 @@
     ensureDayBoundary();
     const rank = rankFromAura(state.aura);
     const path = highestUnlockedPath(rank);
+    const prog = auraProgress(state.aura);
     document.getElementById('hall-emblem').textContent = state.emblem;
     document.getElementById('hall-name').textContent = state.name;
     document.getElementById('hall-rankline').textContent = 'Rank ' + rank + ' · ' + rankBand(rank);
@@ -1767,6 +1781,43 @@
     document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
     document.getElementById('hall-shields').textContent = String(state.shields);
     document.getElementById('hall-best').textContent = String(state.bestStreak);
+
+    // Progress to next rank
+    const bar = document.getElementById('hall-rank-bar');
+    const nextLabel = document.getElementById('hall-rank-next-label');
+    const auraMeta = document.getElementById('hall-rank-aura-meta');
+    const toGo = document.getElementById('hall-rank-to-go');
+    const boutHint = document.getElementById('hall-rank-bout-hint');
+    if (prog.maxed) {
+      bar.style.width = '100%';
+      nextLabel.textContent = 'Max rank';
+      auraMeta.textContent = state.aura.toLocaleString() + ' Aura · Rank ' + MAX_RANK;
+      toGo.textContent = 'Grandmaster peak';
+      boutHint.textContent = 'You stand at the summit of the Order.';
+    } else {
+      const need = Math.max(0, prog.next - state.aura);
+      const nextRank = prog.rank + 1;
+      bar.style.width = prog.pct.toFixed(1) + '%';
+      nextLabel.textContent =
+        'Next: Rank ' + nextRank + ' · ' + rankBand(nextRank).replace(' of the Order', '');
+      auraMeta.textContent =
+        state.aura.toLocaleString() +
+        ' / ' +
+        prog.next.toLocaleString() +
+        ' Aura';
+      toGo.textContent = need.toLocaleString() + ' Aura to go';
+      const boutsApprox = Math.ceil(need / AURA_PER_BOUT);
+      boutHint.textContent =
+        need === 0
+          ? 'Ready to rank up on next save.'
+          : 'About ' +
+            boutsApprox +
+            ' more bout' +
+            (boutsApprox === 1 ? '' : 's') +
+            ' at +' +
+            AURA_PER_BOUT +
+            ' Aura each (before day bonus)';
+    }
 
     const conquered = state.boutsToday >= 3;
     document.getElementById('hall-day-status').textContent = conquered ? 'Day Conquered' : 'In progress';
@@ -2279,11 +2330,24 @@
     document.getElementById('rank-emblem').textContent = state.emblem;
     document.getElementById('rank-title').textContent = 'Rank ' + prog.rank;
     document.getElementById('rank-band').textContent = rankBand(prog.rank);
-    document.getElementById('rank-aura-meta').textContent = prog.maxed
-      ? state.aura.toLocaleString() + ' Aura · Max Rank ' + MAX_RANK
-      : state.aura.toLocaleString() +
-        ' Aura · next rank at ' +
-        prog.next.toLocaleString();
+    if (prog.maxed) {
+      document.getElementById('rank-aura-meta').textContent =
+        state.aura.toLocaleString() + ' Aura · Max Rank ' + MAX_RANK;
+    } else {
+      const need = Math.max(0, prog.next - state.aura);
+      const nextRank = prog.rank + 1;
+      document.getElementById('rank-aura-meta').textContent =
+        state.aura.toLocaleString() +
+        ' / ' +
+        prog.next.toLocaleString() +
+        ' · ' +
+        need.toLocaleString() +
+        ' to Rank ' +
+        nextRank +
+        ' (' +
+        rankBand(nextRank).replace(' of the Order', '') +
+        ')';
+    }
     document.getElementById('rank-aura-bar').style.width = prog.pct + '%';
 
     document.getElementById('rank-paths').innerHTML = PATHS.map((p) => {
