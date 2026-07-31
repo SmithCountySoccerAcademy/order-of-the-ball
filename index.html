@@ -923,27 +923,29 @@
         {
           id: 'sq1',
           title: 'Toe Taps of the Gate',
-          setup: 'One ball · 5×5 · stay light on your feet',
+          setup: 'One ball · 5×5 · stay light on your feet · ~10 min',
           video: '',
-          timing: { workSec: 45, restSec: 15, rounds: 8 },
+          // 45s work + 15s rest × 10 rounds ≈ 9:45
+          timing: { workSec: 45, restSec: 15, rounds: 10 },
           steps: [
             'Place the ball at the center of your 5×5.',
-            'WORK: alternate toe taps on top of the ball.',
-            'REST: shake out, stay in the arena.',
-            'Keep the ball still — you move, the ball waits.',
+            'WORK: alternate toe taps on top of the ball (45s).',
+            'REST: shake out, stay in the arena (15s).',
+            '10 rounds · keep the ball still — you move, the ball waits.',
           ],
           counsel: 'A true squire masters stillness before speed. Soft knees, quiet head.',
         },
         {
           id: 'sq2',
           title: 'Inside Boxes',
-          setup: 'Ball at feet · imaginary square under you',
+          setup: 'Ball at feet · imaginary square under you · ~10 min',
           video: '',
-          timing: { workSec: 30, restSec: 15, rounds: 10 },
+          // 45s work + 15s rest × 10 rounds ≈ 9:45
+          timing: { workSec: 45, restSec: 15, rounds: 10 },
           steps: [
             'Pass the ball side to side with the inside of each foot.',
             'Small touches only — ball never leaves a 2-foot circle.',
-            'WORK continuous; REST between rounds.',
+            'WORK 45s continuous; REST 15s between rounds · 10 rounds.',
             'Count clean touches. Beat your last count.',
           ],
           counsel: 'The knight’s first weapon is the inside of the foot. Polish it daily.',
@@ -951,19 +953,20 @@
         {
           id: 'sq3',
           title: 'Sole Rolls — North & South',
-          setup: 'Ball under the sole · 5×5 lanes',
+          setup: 'Ball under the sole · 5×5 lanes · ~10 min',
           video: '',
+          // 7 min flow + 30s rest + 2.5 min juggle = 10:00
           timing: {
             segments: [
-              { type: 'work', sec: 240, label: 'Sole roll flow' },
-              { type: 'rest', sec: 20, label: 'Brief rest' },
-              { type: 'work', sec: 60, label: 'Juggle attempts' },
+              { type: 'work', sec: 420, label: 'Sole roll flow' },
+              { type: 'rest', sec: 30, label: 'Brief rest' },
+              { type: 'work', sec: 150, label: 'Juggle attempts' },
             ],
           },
           steps: [
-            'Roll the ball forward with the sole, then back.',
+            'Roll the ball forward with the sole, then back for 7 minutes.',
             'Switch feet every 8 rolls during the flow block.',
-            'After rest: free juggle attempts for one minute.',
+            'After rest: free juggle attempts for 2.5 minutes.',
             'Stay inside your arena lines.',
           ],
           counsel: 'The sole is the shield of control. Never look only down — glance up every third roll.',
@@ -971,19 +974,20 @@
         {
           id: 'sq4',
           title: 'Figure-Eight Foundations',
-          setup: 'Two cones or shoes 1 yard apart · one ball',
+          setup: 'Two cones or shoes 1 yard apart · one ball · ~10 min',
           video: '',
+          // 4.5 min slow + 30s rest + 5 min pace = 10:00
           timing: {
             segments: [
-              { type: 'work', sec: 150, label: 'Slow circuits' },
+              { type: 'work', sec: 270, label: 'Slow circuits' },
               { type: 'rest', sec: 30, label: 'Rest' },
-              { type: 'work', sec: 150, label: 'Match pace' },
+              { type: 'work', sec: 300, label: 'Match pace' },
             ],
           },
           steps: [
             'Dribble a figure-eight around the markers using both feet.',
             'Outside of foot on the turns, inside on the straights.',
-            'First work block: slow perfect circuits. Second: match pace.',
+            'First work block (~4.5 min): slow perfect circuits. Second (~5 min): match pace.',
             'If the ball escapes the 5×5, restart that circuit.',
           ],
           counsel: 'Curves forge champions. Straight lines are for peasants who never turn.',
@@ -2755,6 +2759,8 @@
     });
 
     document.getElementById('btn-share').addEventListener('click', shareCard);
+    document.getElementById('btn-submit-score').addEventListener('click', submitLiveScore);
+    document.getElementById('btn-refresh-lb').addEventListener('click', fetchLeaderboard);
     document.getElementById('modal-bg').addEventListener('click', (e) => {
       if (e.target.id === 'modal-bg') closeModal();
     });
