@@ -404,6 +404,15 @@
     }
     .list-item:active { background: rgba(212,175,55,0.08); }
     .list-item.locked { opacity: 0.45; }
+    .list-item.completed {
+      border-color: rgba(110, 231, 168, 0.35);
+      background: rgba(45, 106, 79, 0.18);
+    }
+    .list-item.completed strong { color: #6ee7a8; }
+    .tag.done {
+      border-color: rgba(110, 231, 168, 0.5);
+      color: #6ee7a8;
+    }
 
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
     .chip {
@@ -742,8 +751,10 @@
     <section class="screen" id="screen-scrolls">
       <div class="screen-scroll">
         <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:4px">📜 Scrolls</h1>
-        <p class="muted" style="margin-bottom:8px">Ball mastery drills · unlocked by rank</p>
-        <div class="chips" id="scroll-filters"></div>
+        <p class="muted" style="margin-bottom:12px">Choose a path to open its scrolls. Completed scrolls stay open for more Aura.</p>
+        <label class="muted" for="scroll-path-select" style="display:block;font-size:0.75rem;margin-bottom:6px">Ball mastery path</label>
+        <select id="scroll-path-select" class="field" style="margin-bottom:14px"></select>
+        <p class="muted" style="font-size:0.8rem;margin-bottom:10px" id="scroll-path-meta"></p>
         <div class="list" id="scroll-list"></div>
       </div>
     </section>
@@ -1344,7 +1355,7 @@
     finished: false,
   };
   let activeDrill = null;
-  let scrollFilter = 'all';
+  let scrollPathId = ''; // selected path in Scrolls dropdown
 
   function buildSegments(drill) {
     const t = drill.timing || { workSec: 45, restSec: 15, rounds: 8 };
@@ -1416,7 +1427,31 @@
       totalBouts: 0,
       tutorialDone: false,
       playerId: '',
+      /** Keys like "squire:sq1" — completed at least once; still replayable */
+      completedScrolls: {},
       createdAt: new Date().toISOString(),
+    };
+  }
+
+  function scrollKey(pathId, drillId) {
+    return pathId + ':' + drillId;
+  }
+
+  function isScrollCompleted(pathId, drillId) {
+    if (!state || !state.completedScrolls) return false;
+    return Boolean(state.completedScrolls[scrollKey(pathId, drillId)]);
+  }
+
+  function markScrollCompleted(pathId, drillId) {
+    if (!state) return;
+    if (!state.completedScrolls || typeof state.completedScrolls !== 'object') {
+      state.completedScrolls = {};
+    }
+    const key = scrollKey(pathId, drillId);
+    const prev = state.completedScrolls[key];
+    state.completedScrolls[key] = {
+      count: (prev && prev.count ? prev.count : 0) + 1,
+      lastAt: new Date().toISOString(),
     };
   }
 
@@ -2296,6 +2331,11 @@
 
     const prevAura = state.aura;
 
+    // Track scroll completion (can repeat forever for more Aura)
+    if (activeDrill && activeDrill.path && activeDrill.drill) {
+      markScrollCompleted(activeDrill.path.id, activeDrill.drill.id);
+    }
+
     // Always grant Aura for finishing a scroll
     const boutGain = AURA_PER_BOUT;
     state.aura += boutGain;
@@ -2351,89 +2391,106 @@
 
   function renderScrolls() {
     const rank = rankFromAura(state.aura);
-    const auraPrev = previewDayAura();
-    const filters = document.getElementById('scroll-filters');
-    filters.innerHTML =
-      '<button type="button" class="chip' +
-      (scrollFilter === 'all' ? ' on' : '') +
-      '" data-f="all">All</button>' +
-      PATHS.map(
-        (p) =>
-          '<button type="button" class="chip' +
-          (scrollFilter === p.id ? ' on' : '') +
-          '" data-f="' +
-          p.id +
-          '">' +
-          p.name.replace(' Path', '') +
-          '</button>'
-      ).join('');
-
+    const auraPrev = previewAura();
+    const select = document.getElementById('scroll-path-select');
+    const meta = document.getElementById('scroll-path-meta');
     const list = document.getElementById('scroll-list');
+
+    // Default to highest unlocked path if none selected
+    if (!scrollPathId) {
+      scrollPathId = highestUnlockedPath(rank).id;
+    }
+
+    select.innerHTML = PATHS.map((p) => {
+      const unlocked = pathUnlocked(p, rank);
+      const doneCount = p.drills.filter((d) => isScrollCompleted(p.id, d.id)).length;
+      const label =
+        p.name +
+        (unlocked
+          ? ' · ' + doneCount + '/' + p.drills.length + ' done'
+          : ' · 🔒 Rank ' + p.unlockRank);
+      return (
+        '<option value="' +
+        p.id +
+        '"' +
+        (p.id === scrollPathId ? ' selected' : '') +
+        (unlocked ? '' : '') +
+        '>' +
+        label +
+        '</option>'
+      );
+    }).join('');
+
+    const path = PATHS.find((p) => p.id === scrollPathId) || PATHS[0];
+    const unlocked = pathUnlocked(path, rank);
+    const doneCount = path.drills.filter((d) => isScrollCompleted(path.id, d.id)).length;
+
+    meta.innerHTML = unlocked
+      ? path.focus +
+        ' · <span class="gold">+' +
+        auraPrev.perBout +
+        ' Aura</span> each scroll · ' +
+        doneCount +
+        '/' +
+        path.drills.length +
+        ' completed'
+      : '🔒 Unlocks at Rank ' + path.unlockRank + ' · ' + path.focus;
+
+    if (!unlocked) {
+      list.innerHTML =
+        '<div class="card"><p class="muted" style="font-size:0.9rem;line-height:1.5">This path is sealed until Rank <strong class="gold">' +
+        path.unlockRank +
+        '</strong>. Keep training to rise in the Order.</p></div>';
+      return;
+    }
+
     let html =
-      '<p class="muted" style="margin-bottom:12px;font-size:0.85rem">Each scroll you finish grants <strong class="gold">+' +
-      auraPrev.perBout +
-      ' Aura</strong>. Complete <strong class="gold">3 bouts</strong> for an extra <strong class="gold">+' +
-      auraPrev.dayBonus +
-      ' day bonus</strong>' +
-      (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
-      ' (up to <strong class="gold">+' +
-      auraPrev.fullDayTotal +
-      '</strong> / day).</p>';
-    for (const path of PATHS) {
-      if (scrollFilter !== 'all' && scrollFilter !== path.id) continue;
-      const unlocked = pathUnlocked(path, rank);
-      html += '<div style="margin-bottom:8px"><p class="gold" style="font-family:var(--display);font-weight:700;margin-bottom:6px">' +
-        path.name +
-        (unlocked ? '' : ' <span class="path-lock">🔒 Rank ' + path.unlockRank + '</span>') +
-        '</p>';
-      for (const d of path.drills) {
-        const t = d.timing || {};
-        let timeHint = '';
-        if (t.workSec && t.rounds) {
-          timeHint =
-            t.workSec +
-            's work / ' +
-            (t.restSec || 0) +
-            's rest × ' +
-            t.rounds;
-        } else if (t.segments) {
-          const total = t.segments.reduce((s, x) => s + (x.sec || 0), 0);
-          timeHint = Math.round(total / 60) + ' min timed';
-        }
-        html +=
-          '<button type="button" class="list-item' +
-          (unlocked ? '' : ' locked') +
-          '" data-drill="' +
-          path.id +
-          ':' +
-          d.id +
-          '">' +
-          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong>' +
-          d.title +
-          '</strong>' +
-          '<span class="tag" style="flex-shrink:0">' +
-          (unlocked ? '+' + auraPrev.perBout + ' Aura' : 'Locked') +
-          '</span>' +
-          '</div><p class="muted" style="margin-top:4px;font-size:0.8rem">' +
-          d.setup +
-          (timeHint
-            ? ' · ' + timeHint
-            : '') +
-          '</p>' +
-          (unlocked
-            ? '<p class="gold" style="margin-top:6px;font-size:0.75rem;font-weight:600">Complete this scroll: +' +
-              auraPrev.perBout +
-              ' Aura' +
-              (!auraPrev.already
-                ? ' · Day bonus +' +
-                  auraPrev.dayBonus +
-                  ' after 3 bouts'
-                : ' · day bonus already claimed') +
-              '</p>'
-            : '') +
-          '</button>';
+      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Tap a scroll to train. ✓ Completed scrolls can be repeated for more Aura.</p>';
+
+    for (const d of path.drills) {
+      const done = isScrollCompleted(path.id, d.id);
+      const times =
+        state.completedScrolls && state.completedScrolls[scrollKey(path.id, d.id)]
+          ? state.completedScrolls[scrollKey(path.id, d.id)].count
+          : 0;
+      const t = d.timing || {};
+      let timeHint = '';
+      if (t.workSec && t.rounds) {
+        timeHint =
+          t.workSec + 's work / ' + (t.restSec || 0) + 's rest × ' + t.rounds;
+      } else if (t.segments) {
+        const total = t.segments.reduce((s, x) => s + (x.sec || 0), 0);
+        timeHint = Math.round(total / 60) + ' min timed';
       }
-      html += '</div>';
+      html +=
+        '<button type="button" class="list-item' +
+        (done ? ' completed' : '') +
+        '" data-drill="' +
+        path.id +
+        ':' +
+        d.id +
+        '">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong>' +
+        (done ? '✓ ' : '') +
+        d.title +
+        '</strong>' +
+        '<span class="tag' +
+        (done ? ' done' : '') +
+        '" style="flex-shrink:0">' +
+        (done ? 'Completed' : 'New') +
+        '</span>' +
+        '</div><p class="muted" style="margin-top:4px;font-size:0.8rem">' +
+        d.setup +
+        (timeHint ? ' · ' + timeHint : '') +
+        '</p>' +
+        '<p class="gold" style="margin-top:6px;font-size:0.75rem;font-weight:600">+' +
+        auraPrev.perBout +
+        ' Aura' +
+        (done
+          ? ' · replay anytime' + (times > 1 ? ' · done ×' + times : '')
+          : ' · not completed yet') +
+        '</p>' +
+        '</button>';
     }
     list.innerHTML = html;
   }
