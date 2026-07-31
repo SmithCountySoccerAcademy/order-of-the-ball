@@ -717,10 +717,10 @@
           <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Squire</span>
           <h2 style="margin-top:8px;font-size:1.35rem" id="bout-drill-title">Drill</h2>
           <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="bout-drill-setup"></p>
-          <div id="bout-video" class="video-wrap" aria-label="Drill demonstration"></div>
-          <p class="muted" style="font-size:0.75rem;margin-top:6px">Watch the demo, then train the bout.</p>
           <ol class="steps" id="bout-drill-steps"></ol>
           <div class="counsel" id="bout-counsel"></div>
+          <div id="bout-video" class="video-wrap" style="margin-top:14px" aria-label="Drill demonstration"></div>
+          <p class="muted" style="font-size:0.75rem;margin-top:6px">Watch the demo, then train the bout.</p>
         </div>
         <div class="card" style="text-align:center">
           <p class="muted" style="margin-bottom:6px">Drill timer · work &amp; rest from this scroll</p>
@@ -2468,15 +2468,16 @@
             ' after 3 bouts'
           : '') +
         '</p>' +
-        '<div class="video-wrap">' +
-        renderVideoHtml(drill.video) +
-        '</div>' +
         '<ol class="steps">' +
         drill.steps.map((s) => '<li>' + s + '</li>').join('') +
         '</ol>' +
         '<div class="counsel">Knight’s counsel: ' +
         drill.counsel +
         '</div>' +
+        '<div class="video-wrap" style="margin-top:14px">' +
+        renderVideoHtml(drill.video) +
+        '</div>' +
+        '<p class="muted" style="font-size:0.75rem;margin-top:6px">Watch the demo, then train the bout.</p>' +
         '<button type="button" class="btn btn-gold" style="margin-top:16px" id="modal-train">Train this scroll</button>' +
         '<button type="button" class="btn btn-ghost" style="margin-top:8px" id="modal-close">Close</button>'
     );
