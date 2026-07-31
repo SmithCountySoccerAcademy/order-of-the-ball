@@ -763,15 +763,6 @@
           </button>
         </div>
 
-        <div class="card" style="margin-bottom:12px">
-          <p class="muted" style="font-size:0.85rem;line-height:1.45">
-            Best streak ever: <strong class="gold" id="hall-best">0</strong> days
-          </p>
-          <p class="muted" style="margin-top:6px;font-size:0.75rem;line-height:1.4" id="hall-streak-hint">
-            Conquer 3 bouts a day to grow streak &amp; day-bonus mult
-          </p>
-        </div>
-
         <div class="card">
           <h2 style="font-size:1rem;color:var(--gold);margin-bottom:8px">Ball Mastery</h2>
           <p style="font-weight:600" id="hall-path-name">Squire</p>
@@ -2531,12 +2522,11 @@
     document.getElementById('hall-emblem').textContent = state.emblem;
     document.getElementById('hall-name').textContent = formatProclamation();
     document.getElementById('hall-rankline').textContent =
-      'Level ' + rank + ' · best streak ' + (state.bestStreak || 0) + 'd';
+      'Level ' + rank + ' · ' + rankShort(rank);
     document.getElementById('hall-aura').textContent = state.aura.toLocaleString();
     document.getElementById('hall-streak').textContent = String(state.streak);
     document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
     document.getElementById('hall-shields').textContent = String(state.shields);
-    document.getElementById('hall-best').textContent = String(state.bestStreak);
 
     // Progress to next rank
     const bar = document.getElementById('hall-rank-bar');
@@ -2617,24 +2607,6 @@
         '/3) · ~+' +
         typ +
         ' Aura';
-    }
-
-    const hint = document.getElementById('hall-streak-hint');
-    if (hint) {
-      const nextH = nextHonorReward();
-      if (nextH) {
-        hint.textContent =
-          'Next honor at ' +
-          nextH.days +
-          '-day best streak: ' +
-          nextH.epithet +
-          ' · now best ' +
-          (state.bestStreak || 0) +
-          'd';
-      } else {
-        hint.textContent =
-          'All honors unlocked · keep the quest streak for max day bonus';
-      }
     }
 
     document.getElementById('hall-path-name').textContent = path.title;
