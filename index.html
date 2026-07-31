@@ -238,14 +238,19 @@
       position: fixed;
       inset: 0;
       z-index: 300;
-      display: none;
+      display: none !important;
       align-items: center;
       justify-content: center;
       padding: 20px;
       background: rgba(4, 8, 24, 0.88);
       backdrop-filter: blur(6px);
+      pointer-events: none;
     }
-    .rankup-bg.open { display: flex; animation: rankupFade 0.35s ease; }
+    .rankup-bg.open {
+      display: flex !important;
+      pointer-events: auto;
+      animation: rankupFade 0.35s ease;
+    }
     @keyframes rankupFade {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -439,8 +444,12 @@
       z-index: 100;
       padding: 16px;
       padding-bottom: calc(16px + var(--safeb));
+      pointer-events: none;
     }
-    .modal-bg.open { display: flex; }
+    .modal-bg.open {
+      display: flex;
+      pointer-events: auto;
+    }
     .modal {
       width: 100%;
       max-width: 448px;
@@ -2504,18 +2513,22 @@
       toast('Locked until Rank ' + path.unlockRank);
       return;
     }
-    const auraPrev = previewDayAura();
+    const auraPrev = previewAura();
+    const done = isScrollCompleted(pathId, drillId);
     openModal(
       '<h2 style="color:var(--gold-bright);margin-bottom:4px">' +
+        (done ? '✓ ' : '') +
         drill.title +
         '</h2>' +
         '<p class="muted" style="margin-bottom:10px">' +
         path.name +
         ' · ' +
         drill.setup +
+        (done ? ' · <span class="gold">Completed before</span>' : '') +
         '</p>' +
         '<p class="gold" style="margin-bottom:12px;font-size:0.85rem;font-weight:600">' +
-        'Complete scroll: +' +
+        (done ? 'Replay for ' : 'Complete for ') +
+        '+' +
         auraPrev.perBout +
         ' Aura' +
         (!auraPrev.already
@@ -2962,21 +2975,42 @@
     renderTutorialStep();
   }
 
+  function on(id, event, handler) {
+    const el = document.getElementById(id);
+    if (!el) {
+      console.warn('Missing element #' + id);
+      return;
+    }
+    el.addEventListener(event, handler);
+  }
+
+  function clearOverlays() {
+    try {
+      closeModal();
+    } catch (e) {
+      /* ignore */
+    }
+    const rankup = document.getElementById('rankup-bg');
+    if (rankup) rankup.classList.remove('open');
+    rankUpShowing = false;
+    rankUpQueue = [];
+  }
+
   function bindAppEvents() {
-    document.getElementById('emblem-grid').addEventListener('click', (e) => {
+    on('emblem-grid', 'click', (e) => {
       const btn = e.target.closest('[data-emblem]');
       if (!btn) return;
       selectedEmblem = btn.dataset.emblem;
       renderOnboarding();
     });
 
-    document.getElementById('btn-begin').addEventListener('click', beginOrder);
+    on('btn-begin', 'click', beginOrder);
 
-    document.getElementById('btn-tut-next').addEventListener('click', tutorialNext);
-    document.getElementById('btn-tut-skip').addEventListener('click', () => {
+    on('btn-tut-next', 'click', tutorialNext);
+    on('btn-tut-skip', 'click', () => {
       if (confirm('Skip the tutorial and become a Squire now?')) finishTutorial(true);
     });
-    document.getElementById('btn-tut-timer').addEventListener('click', () => {
+    on('btn-tut-timer', 'click', () => {
       if (tutTimer.finished) return;
       if (tutTimer.running) {
         stopTutTimer();
@@ -2986,7 +3020,7 @@
       }
     });
 
-    document.getElementById('main-nav').addEventListener('click', (e) => {
+    on('main-nav', 'click', (e) => {
       const btn = e.target.closest('[data-nav]');
       if (!btn) return;
       if (btn.dataset.nav === 'bout') {
@@ -2997,15 +3031,15 @@
       }
     });
 
-    document.getElementById('btn-start-bout').addEventListener('click', () => {
+    on('btn-start-bout', 'click', () => {
       activeDrill = pickDrill();
       resetTimer();
       showScreen('bout');
     });
-    document.getElementById('btn-hall-scrolls').addEventListener('click', () => showScreen('scrolls'));
-    document.getElementById('btn-bout-back').addEventListener('click', () => showScreen('hall'));
+    on('btn-hall-scrolls', 'click', () => showScreen('scrolls'));
+    on('btn-bout-back', 'click', () => showScreen('hall'));
 
-    document.getElementById('btn-timer-toggle').addEventListener('click', () => {
+    on('btn-timer-toggle', 'click', () => {
       if (timer.finished) return;
       if (timer.running) {
         stopTimerInterval();
@@ -3014,38 +3048,43 @@
         startTimerInterval();
       }
     });
-    document.getElementById('btn-timer-reset').addEventListener('click', () => {
+    on('btn-timer-reset', 'click', () => {
       if (timer.running && !confirm('Reset the bout timer?')) return;
       resetTimer();
     });
-    document.getElementById('btn-complete-bout').addEventListener('click', () => completeBout());
+    on('btn-complete-bout', 'click', () => completeBout());
 
-    document.getElementById('scroll-filters').addEventListener('click', (e) => {
-      const chip = e.target.closest('[data-f]');
-      if (!chip) return;
-      scrollFilter = chip.dataset.f;
+    on('scroll-path-select', 'change', (e) => {
+      scrollPathId = e.target.value;
       renderScrolls();
     });
-    document.getElementById('scroll-list').addEventListener('click', (e) => {
+    on('scroll-list', 'click', (e) => {
       const item = e.target.closest('[data-drill]');
       if (!item) return;
       const [pid, did] = item.dataset.drill.split(':');
       openDrillModal(pid, did);
     });
 
-    document.getElementById('btn-share').addEventListener('click', shareCard);
-    document.getElementById('btn-submit-score').addEventListener('click', submitLiveScore);
-    document.getElementById('btn-refresh-lb').addEventListener('click', fetchLeaderboard);
-    document.getElementById('modal-bg').addEventListener('click', (e) => {
+    on('btn-share', 'click', shareCard);
+    on('btn-submit-score', 'click', submitLiveScore);
+    on('btn-refresh-lb', 'click', fetchLeaderboard);
+    on('modal-bg', 'click', (e) => {
       if (e.target.id === 'modal-bg') closeModal();
     });
-    document.getElementById('btn-rankup-dismiss').addEventListener('click', dismissRankUp);
-    document.getElementById('rankup-bg').addEventListener('click', (e) => {
+    on('btn-rankup-dismiss', 'click', (e) => {
+      e.stopPropagation();
+      dismissRankUp();
+    });
+    on('rankup-bg', 'click', (e) => {
       if (e.target.id === 'rankup-bg') dismissRankUp();
     });
 
     document.querySelectorAll('.stat-tap[data-help]').forEach((btn) => {
       btn.addEventListener('click', () => showStatHelp(btn.dataset.help));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') clearOverlays();
     });
   }
 
@@ -3125,60 +3164,80 @@
   }
 
   async function boot() {
-    bindAppEvents();
-    document.getElementById('btn-buy').addEventListener('click', startCheckout);
-    document.getElementById('btn-redeem-code').addEventListener('click', redeemCode);
+    try {
+      clearOverlays();
+      bindAppEvents();
+      on('btn-buy', 'click', startCheckout);
+      on('btn-redeem-code', 'click', redeemCode);
 
-    document.getElementById('btn-export-save').addEventListener('click', async () => {
-      if (!state || !state.name) {
-        toast('Create a profile first.');
+      on('btn-export-save', 'click', async () => {
+        if (!state || !state.name) {
+          toast('Create a profile first.');
+          return;
+        }
+        save();
+        const text = exportSaveScroll();
+        const status = document.getElementById('save-status');
+        try {
+          await navigator.clipboard.writeText(text);
+          if (status)
+            status.textContent =
+              'Backup scroll copied. Save it in Notes or email it to yourself.';
+          toast('Backup scroll copied!');
+        } catch {
+          prompt('Copy this backup scroll:', text);
+          if (status)
+            status.textContent =
+              'Copy the scroll from the prompt and store it safely.';
+        }
+      });
+
+      on('btn-import-save', 'click', () => {
+        const text = prompt('Paste your backup scroll:');
+        if (!text) return;
+        if (importSaveScroll(text)) {
+          const status = document.getElementById('save-status');
+          if (status) status.textContent = 'Progress restored.';
+          toast('Progress restored!');
+          document.getElementById('main-nav').classList.add('visible');
+          ensureDayBoundary();
+          showScreen('hall');
+          renderRank();
+        }
+      });
+
+      // Returning from Stripe Checkout
+      if (await verifySessionFromUrl()) return;
+
+      // Prefer dual-store unlock recovery
+      if (!isUnlocked()) {
+        const tok = await idbGet(UNLOCK_KEY);
+        if (tok && typeof tok === 'string') setUnlockToken(tok);
+      }
+
+      if (isUnlocked()) {
+        await enterApp();
         return;
       }
-      save();
-      const text = exportSaveScroll();
-      const status = document.getElementById('save-status');
+
+      // Locked
+      document.getElementById('main-nav').classList.remove('visible');
+      showScreen('paywall');
+      renderOnboarding();
+    } catch (err) {
+      console.error('Boot error', err);
+      clearOverlays();
       try {
-        await navigator.clipboard.writeText(text);
-        status.textContent = 'Backup scroll copied. Save it in Notes or email it to yourself.';
-        toast('Backup scroll copied!');
-      } catch {
-        prompt('Copy this backup scroll:', text);
-        status.textContent = 'Copy the scroll from the prompt and store it safely.';
+        toast('App hit a snag — try refreshing. ' + (err && err.message ? err.message : ''));
+      } catch (e) {
+        /* ignore */
       }
-    });
-
-    document.getElementById('btn-import-save').addEventListener('click', () => {
-      const text = prompt('Paste your backup scroll:');
-      if (!text) return;
-      if (importSaveScroll(text)) {
-        document.getElementById('save-status').textContent = 'Progress restored.';
-        toast('Progress restored!');
-        document.getElementById('main-nav').classList.add('visible');
-        ensureDayBoundary();
-        showScreen('hall');
-        renderRank();
-      }
-    });
-
-    // Returning from Stripe Checkout
-    if (await verifySessionFromUrl()) return;
-
-    // Prefer dual-store unlock recovery
-    if (!isUnlocked()) {
-      const tok = await idbGet(UNLOCK_KEY);
-      if (tok && typeof tok === 'string') setUnlockToken(tok);
     }
-
-    if (isUnlocked()) {
-      await enterApp();
-      return;
-    }
-
-    // Locked
-    document.getElementById('main-nav').classList.remove('visible');
-    showScreen('paywall');
-    renderOnboarding();
   }
+
+  window.addEventListener('error', function (ev) {
+    console.error(ev.error || ev.message);
+  });
 
   boot();
 })();
