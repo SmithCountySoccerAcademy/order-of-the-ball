@@ -668,10 +668,16 @@
           <p class="subtitle">Ball mastery · One ball · 5×5 arena<br/>Train as a knight. Rise through the ranks.</p>
         </div>
         <div class="card">
-          <label class="muted" for="input-name" style="display:block;margin-bottom:6px">Your name (first name is fine)</label>
+          <p class="muted" style="margin-bottom:8px;font-size:0.85rem">How should the Order address you?</p>
+          <div class="btn-row" id="onboard-style-row" style="flex-wrap:wrap;gap:6px;margin-bottom:14px">
+            <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;font-size:0.8rem" data-onboard-style="">None</button>
+            <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;font-size:0.8rem" data-onboard-style="Sir">Sir</button>
+            <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;font-size:0.8rem" data-onboard-style="Lady">Lady</button>
+          </div>
+          <label class="muted" for="input-name" style="display:block;margin-bottom:6px">Your name only (don’t type Sir or Lady here)</label>
           <input class="field" id="input-name" maxlength="18" placeholder="e.g. Ella" autocomplete="nickname" />
-          <p class="muted" style="margin-top:8px;font-size:0.75rem;line-height:1.4">
-            You’ll be introduced as <strong class="gold">Page Ella</strong> — add Sir/Lady and honors later.
+          <p class="muted" style="margin-top:10px;font-size:0.8rem;line-height:1.45">
+            You’ll be: <strong class="gold" id="onboard-preview">Page …</strong>
           </p>
           <p class="muted" style="margin-top:14px;margin-bottom:8px">Choose your emblem</p>
           <div class="emblem-grid" id="emblem-grid"></div>
@@ -1617,6 +1623,8 @@
   // —— State ——
   let state = null;
   let selectedEmblem = EMBLEMS[0];
+  /** Onboarding style: '' | 'Sir' | 'Lady' */
+  let selectedStylePrefix = '';
   let timer = {
     segments: [],
     index: 0,
@@ -2371,10 +2379,41 @@
 
   function renderOnboarding() {
     const grid = document.getElementById('emblem-grid');
-    grid.innerHTML = EMBLEMS.map(
-      (e) =>
-        `<button type="button" class="emblem-opt${e === selectedEmblem ? ' selected' : ''}" data-emblem="${e}">${e}</button>`
-    ).join('');
+    if (grid) {
+      grid.innerHTML = EMBLEMS.map(
+        (e) =>
+          `<button type="button" class="emblem-opt${e === selectedEmblem ? ' selected' : ''}" data-emblem="${e}">${e}</button>`
+      ).join('');
+    }
+    document.querySelectorAll('#onboard-style-row [data-onboard-style]').forEach((btn) => {
+      const val = btn.getAttribute('data-onboard-style') || '';
+      const active = val === selectedStylePrefix;
+      btn.className =
+        'btn ' +
+        (active ? 'btn-gold' : 'btn-ghost');
+      btn.style.width = 'auto';
+      btn.style.padding = '8px 12px';
+      btn.style.fontSize = '0.8rem';
+    });
+    updateOnboardPreview();
+  }
+
+  function updateOnboardPreview() {
+    const el = document.getElementById('onboard-preview');
+    if (!el) return;
+    const raw = (document.getElementById('input-name') || {}).value || '';
+    const name = stripStyleFromName(raw.trim()) || '…';
+    const parts = ['Page'];
+    if (selectedStylePrefix) parts.push(selectedStylePrefix);
+    parts.push(name);
+    el.textContent = parts.join(' ');
+  }
+
+  /** If they typed "Sir Ella" / "Lady Ella", keep only Ella. */
+  function stripStyleFromName(name) {
+    return String(name || '')
+      .replace(/^(sir|lady)\s+/i, '')
+      .trim();
   }
 
   function renderHall() {
@@ -3264,13 +3303,16 @@
   }
 
   function beginOrder() {
-    const name = document.getElementById('input-name').value.trim();
+    const name = stripStyleFromName(
+      document.getElementById('input-name').value.trim()
+    );
     if (!name) {
       toast('Every page needs a name.');
       return;
     }
     state = defaultState();
     state.name = name.slice(0, 18);
+    state.stylePrefix = selectedStylePrefix || '';
     state.emblem = selectedEmblem;
     state.boutDay = todayKey();
     state.lastSeenDay = todayKey();
@@ -3511,6 +3553,15 @@
       selectedEmblem = btn.dataset.emblem;
       renderOnboarding();
     });
+
+    on('onboard-style-row', 'click', (e) => {
+      const btn = e.target.closest('[data-onboard-style]');
+      if (!btn) return;
+      selectedStylePrefix = btn.getAttribute('data-onboard-style') || '';
+      renderOnboarding();
+    });
+
+    on('input-name', 'input', updateOnboardPreview);
 
     on('btn-begin', 'click', beginOrder);
 
