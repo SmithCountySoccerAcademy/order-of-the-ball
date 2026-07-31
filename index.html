@@ -641,7 +641,7 @@
           <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
-            <li>Ranks 1–99 · titles · streaks · shields</li>
+            <li>Levels 1–99 · titles · streaks · shields</li>
             <li>Squire → Grandmaster rank scrolls · growing library</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
@@ -708,7 +708,7 @@
           <div class="crest crest-sm" id="hall-emblem">⚔️</div>
           <div style="flex:1;min-width:0">
             <h1 style="font-size:1.25rem;color:var(--gold-bright)" id="hall-name">—</h1>
-            <p class="muted" id="hall-rankline">Rank 1 · Page</p>
+            <p class="muted" id="hall-rankline">Level 1 · Page</p>
           </div>
           <div style="text-align:right">
             <div class="gold" style="font-family:var(--display);font-weight:700" id="hall-aura">0</div>
@@ -718,8 +718,8 @@
 
         <div class="card" style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px">
-            <h2 style="font-size:1rem;color:var(--gold);margin:0">Rank progress</h2>
-            <span class="muted" style="font-size:0.75rem" id="hall-rank-next-label">Next: Rank 2</span>
+            <h2 style="font-size:1rem;color:var(--gold);margin:0">Level progress</h2>
+            <span class="muted" style="font-size:0.75rem" id="hall-rank-next-label">Next: Level 2</span>
           </div>
           <div class="bar" style="height:12px"><i id="hall-rank-bar" style="width:0%"></i></div>
           <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:0.8rem">
@@ -814,10 +814,10 @@
     <!-- RANK -->
     <section class="screen" id="screen-rank">
       <div class="screen-scroll">
-        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Rank & Titles</h1>
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Level & Titles</h1>
         <div class="card" style="margin-bottom:12px;text-align:center">
           <div class="crest" id="rank-emblem" style="margin:0 auto 12px">⚔️</div>
-          <h2 class="gold" id="rank-title">Rank 1</h2>
+          <h2 class="gold" id="rank-title">Level 1</h2>
           <p class="muted" id="rank-band">Page of the Order</p>
           <div style="margin-top:14px;text-align:left">
             <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px">
@@ -828,7 +828,7 @@
           </div>
         </div>
         <div class="card" style="margin-bottom:12px">
-          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Rank</h3>
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Title</h3>
           <div class="list" id="rank-paths"></div>
         </div>
         <div class="card">
@@ -858,13 +858,13 @@
           </div>
           <div class="crest crest-sm" id="arena-emblem" style="margin:0 auto 10px">⚔️</div>
           <h2 style="color:var(--gold-bright);font-size:1.3rem" id="arena-name">Knight</h2>
-          <p style="color:rgba(243,230,200,0.7);margin-top:4px" id="arena-rank">Rank 1 · Page</p>
+          <p style="color:rgba(243,230,200,0.7);margin-top:4px" id="arena-rank">Level 1 · Page</p>
           <p style="margin-top:12px;font-size:0.85rem;color:var(--gold)" id="arena-stats">0 Aura · 0 day streak</p>
           <p style="margin-top:8px;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(243,230,200,0.4)">Order of the Ball</p>
         </div>
-        <button type="button" class="btn btn-gold" id="btn-share" style="margin-bottom:10px">Share rank card</button>
+        <button type="button" class="btn btn-gold" id="btn-share" style="margin-bottom:10px">Share level card</button>
         <button type="button" class="btn btn-royal" id="btn-submit-score" style="margin-bottom:16px">Post score to live board</button>
-        <p class="muted" style="text-align:center;font-size:0.75rem;margin-bottom:12px" id="lb-status">Opt-in: posts your name, emblem, rank &amp; Aura</p>
+        <p class="muted" style="text-align:center;font-size:0.75rem;margin-bottom:12px" id="lb-status">Opt-in: posts your name, emblem, level &amp; Aura</p>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <h3 style="font-size:0.95rem;color:var(--gold);margin:0">Hall of Fame</h3>
@@ -879,7 +879,7 @@
       <button type="button" data-nav="hall" class="active"><span class="ico">🏰</span>Hall</button>
       <button type="button" data-nav="bout"><span class="ico">⚔️</span>Bout</button>
       <button type="button" data-nav="scrolls"><span class="ico">📜</span>Scrolls</button>
-      <button type="button" data-nav="rank"><span class="ico">👑</span>Rank</button>
+      <button type="button" data-nav="rank"><span class="ico">👑</span>Level</button>
       <button type="button" data-nav="arena"><span class="ico">🏟️</span>Arena</button>
     </nav>
   </div>
@@ -890,12 +890,12 @@
   <div class="rankup-bg" id="rankup-bg" role="dialog" aria-labelledby="rankup-rank-label">
     <div class="rankup-card">
       <div class="rankup-burst">⚔️ ✨ 🛡️</div>
-      <p class="rankup-title">Rank up</p>
+      <p class="rankup-title">Level up</p>
       <div class="crest" id="rankup-emblem" style="margin:12px auto">⚔️</div>
-      <p class="rankup-rank" id="rankup-rank-label">Rank 2</p>
+      <p class="rankup-rank" id="rankup-rank-label">Level 2</p>
       <p class="rankup-band" id="rankup-band">Squire of the Order</p>
       <p class="rankup-sub" id="rankup-sub">You have risen in the Order.</p>
-      <p class="muted" style="margin-top:8px;font-size:0.8rem" id="rankup-from">From Rank 1</p>
+      <p class="muted" style="margin-top:8px;font-size:0.8rem" id="rankup-from">From Level 1</p>
       <button type="button" class="btn btn-gold" style="margin-top:20px" id="btn-rankup-dismiss">Continue the quest</button>
     </div>
   </div>
@@ -2104,10 +2104,10 @@
 
     document.getElementById('rankup-emblem').textContent =
       (state && state.emblem) || '⚔️';
-    document.getElementById('rankup-rank-label').textContent = 'Rank ' + item.to;
+    document.getElementById('rankup-rank-label').textContent = 'Level ' + item.to;
     document.getElementById('rankup-band').textContent = band;
     document.getElementById('rankup-from').textContent =
-      'Rose from Rank ' + item.from + (titleChanged ? ' · New title!' : '');
+      'Rose from Level ' + item.from + (titleChanged ? ' · New title!' : '');
     document.getElementById('rankup-sub').textContent = titleChanged
       ? 'New standing in the Order: ' + band.replace(' of the Order', '') + '.'
       : 'Your Aura has lifted you higher. Keep training, knight.';
@@ -2179,7 +2179,7 @@
     const prog = auraProgress(state.aura);
     document.getElementById('hall-emblem').textContent = state.emblem;
     document.getElementById('hall-name').textContent = state.name;
-    document.getElementById('hall-rankline').textContent = 'Rank ' + rank + ' · ' + rankBand(rank);
+    document.getElementById('hall-rankline').textContent = 'Level ' + rank + ' · ' + rankBand(rank);
     document.getElementById('hall-aura').textContent = state.aura.toLocaleString();
     document.getElementById('hall-streak').textContent = String(state.streak);
     document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
@@ -2195,7 +2195,7 @@
     if (prog.maxed) {
       bar.style.width = '100%';
       nextLabel.textContent = 'Max rank';
-      auraMeta.textContent = state.aura.toLocaleString() + ' Aura · Rank ' + MAX_RANK;
+      auraMeta.textContent = state.aura.toLocaleString() + ' Aura · Level ' + MAX_RANK;
       toGo.textContent = 'Grandmaster peak';
       boutHint.textContent = 'You stand at the summit of the Order.';
     } else {
@@ -2203,7 +2203,7 @@
       const nextRank = prog.rank + 1;
       bar.style.width = prog.pct.toFixed(1) + '%';
       nextLabel.textContent =
-        'Next: Rank ' + nextRank + ' · ' + rankBand(nextRank).replace(' of the Order', '');
+        'Next: Level ' + nextRank + ' · ' + rankBand(nextRank).replace(' of the Order', '');
       auraMeta.textContent =
         state.aura.toLocaleString() +
         ' / ' +
@@ -2214,7 +2214,7 @@
       const boutsApprox = Math.ceil(need / typ);
       boutHint.textContent =
         need === 0
-          ? 'Ready to rank up on next save.'
+          ? 'Ready to level up on next save.'
           : 'About ' +
             boutsApprox +
             ' more bout' +
@@ -2662,7 +2662,7 @@
             pathAura +
             ' Aura · ' +
             countLabel
-          : '🔒 Rank ' + path.unlockRank + ' · ' + path.focus) +
+          : '🔒 Level ' + path.unlockRank + ' · ' + path.focus) +
         '</span></span>' +
         '<span class="chev">▶</span>' +
         '</button>' +
@@ -2670,7 +2670,7 @@
 
       if (!unlocked) {
         html +=
-          '<p class="muted" style="font-size:0.85rem;padding:8px 4px;line-height:1.45">Sealed until Rank <strong class="gold">' +
+          '<p class="muted" style="font-size:0.85rem;padding:8px 4px;line-height:1.45">Sealed until Level <strong class="gold">' +
           path.unlockRank +
           '</strong> (' +
           path.title +
@@ -2743,7 +2743,7 @@
     if (!path || !drill) return;
     const rank = rankFromAura(state.aura);
     if (!rankGroupUnlocked(path, rank)) {
-      toast('Locked until Rank ' + path.unlockRank);
+      toast('Locked until Level ' + path.unlockRank);
       return;
     }
     const scrollAura = getScrollAura(pathId);
@@ -2797,11 +2797,11 @@
   function renderRank() {
     const prog = auraProgress(state.aura);
     document.getElementById('rank-emblem').textContent = state.emblem;
-    document.getElementById('rank-title').textContent = 'Rank ' + prog.rank;
+    document.getElementById('rank-title').textContent = 'Level ' + prog.rank;
     document.getElementById('rank-band').textContent = rankBand(prog.rank);
     if (prog.maxed) {
       document.getElementById('rank-aura-meta').textContent =
-        state.aura.toLocaleString() + ' Aura · Max Rank ' + MAX_RANK;
+        state.aura.toLocaleString() + ' Aura · Max Level ' + MAX_RANK;
     } else {
       const need = Math.max(0, prog.next - state.aura);
       const nextRank = prog.rank + 1;
@@ -2811,7 +2811,7 @@
         prog.next.toLocaleString() +
         ' · ' +
         need.toLocaleString() +
-        ' to Rank ' +
+        ' to Level ' +
         nextRank +
         ' (' +
         rankBand(nextRank).replace(' of the Order', '') +
@@ -2828,7 +2828,7 @@
         '"><strong>' +
         p.title +
         '</strong> ' +
-        (ok ? '<span class="tag">Unlocked</span>' : '<span class="tag">Rank ' + p.unlockRank + '</span>') +
+        (ok ? '<span class="tag">Unlocked</span>' : '<span class="tag">Level ' + p.unlockRank + '</span>') +
         '<p class="muted" style="margin-top:4px;font-size:0.8rem">' +
         p.focus +
         ' · ' +
@@ -2879,7 +2879,7 @@
           '</span><span style="flex:1">' +
           (row.name || 'Knight') +
           (you ? ' (you)' : '') +
-          '</span><span class="muted">R' +
+          '</span><span class="muted">Lv ' +
           row.rank +
           ' · ' +
           Number(row.aura || 0).toLocaleString() +
@@ -2954,7 +2954,7 @@
     const rank = rankFromAura(state.aura);
     document.getElementById('arena-emblem').textContent = state.emblem;
     document.getElementById('arena-name').textContent = state.name;
-    document.getElementById('arena-rank').textContent = 'Rank ' + rank + ' · ' + rankBand(rank);
+    document.getElementById('arena-rank').textContent = 'Level ' + rank + ' · ' + rankBand(rank);
     document.getElementById('arena-stats').textContent =
       state.aura.toLocaleString() + ' Aura · ' + state.streak + ' day streak · Best ' + state.bestStreak;
     ensurePlayerId();
@@ -2965,7 +2965,7 @@
     const text =
       'I am ' +
       state.name +
-      ' — Rank ' +
+      ' — Level ' +
       rankFromAura(state.aura) +
       ' ' +
       rankBand(rankFromAura(state.aura)) +
@@ -2979,12 +2979,12 @@
         await navigator.share({ title: 'Order of the Ball', text });
       } else {
         await navigator.clipboard.writeText(text);
-        toast('Rank proclamation copied!');
+        toast('Level proclamation copied!');
       }
     } catch {
       try {
         await navigator.clipboard.writeText(text);
-        toast('Rank proclamation copied!');
+        toast('Level proclamation copied!');
       } catch {
         toast('Could not share — screenshot your card!');
       }
@@ -3155,7 +3155,7 @@
         'You earn <strong class="gold">+' +
         TUTORIAL_AURA_COMPLETE +
         ' Aura</strong> for the practice — enough to feel progress, not a free rank-up.<br><br>' +
-        'From the Hall: train <strong class="gold">3 bouts a day</strong>, open Scrolls, and climb through Page into <strong class="gold">Squire</strong> (Rank 5+) and beyond.';
+        'From the Hall: train <strong class="gold">3 bouts a day</strong>, open Scrolls, and climb through Page into <strong class="gold">Squire</strong> (Level 5+) and beyond.';
       card.style.display = '';
       card.innerHTML =
         '<p class="gold" style="font-weight:700;text-align:center">+' +
