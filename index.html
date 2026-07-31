@@ -805,7 +805,7 @@
     <section class="screen" id="screen-scrolls">
       <div class="screen-scroll">
         <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:4px">📜 Scrolls</h1>
-        <p class="muted" style="margin-bottom:12px">Tap a rank title to expand its scrolls. Completed scrolls can be replayed for more Aura.</p>
+        <p class="muted" style="margin-bottom:12px">Tap a rank to expand its scrolls. Completed scrolls can be replayed for more Aura.</p>
         <div id="scroll-list"></div>
       </div>
     </section>
@@ -813,11 +813,12 @@
     <!-- RANK -->
     <section class="screen" id="screen-rank">
       <div class="screen-scroll">
-        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Level</h1>
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:12px">⚔️ Level &amp; Rank</h1>
         <div class="card" style="margin-bottom:12px;text-align:center">
           <div class="crest" id="rank-emblem" style="margin:0 auto 12px">⚔️</div>
           <h2 class="gold" id="rank-title">Level 1</h2>
-          <p class="muted" id="rank-band">Page of the Order</p>
+          <p class="muted" style="font-size:0.75rem;margin-top:4px">Your rank</p>
+          <p class="gold" style="font-weight:700;margin-top:2px" id="rank-band">Page of the Order</p>
           <div style="margin-top:14px;text-align:left">
             <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px">
               <span class="muted">Aura to next level</span>
@@ -827,8 +828,18 @@
           </div>
         </div>
         <div class="card" style="margin-bottom:12px">
-          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Title</h3>
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Rank</h3>
+          <p class="muted" style="font-size:0.75rem;margin-bottom:10px;line-height:1.4">
+            Scrolls unlock with your <strong class="gold">rank</strong> (Page, Squire, Knight…). Higher ranks pay more Aura.
+          </p>
           <div class="list" id="rank-paths"></div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">Titles</h3>
+          <p class="muted" style="font-size:0.8rem;line-height:1.45" id="honor-title-blurb">
+            <strong class="gold">Titles</strong> come from quest consistency (streaks) — separate from rank.
+            A cleaner honor system is coming; for now, long streaks still grant Streak Shields.
+          </p>
         </div>
         <div class="card" style="margin-top:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">🛡️ Keep your progress</h3>
@@ -1121,15 +1132,15 @@
 
   /**
    * ═══════════════════════════════════════════════════════════════════
-   * SCROLL LIBRARY — one block per rank title
+   * SCROLL LIBRARY — one block per Order rank (Squire, Knight, …)
    * ═══════════════════════════════════════════════════════════════════
    *
-   * Display name = rank title only (Squire, Knight, …) — not "X Path".
-   * Each rank holds every scroll unlocked when you reach that title.
-   * unlockRank matches the title ladder in rankBand().
+   * Display name = Order rank (not streak titles, not "X Path").
+   * Each rank holds scrolls unlocked at that rank’s level.
+   * unlockRank matches the ladder in rankBand().
    *
    * HOW TO ADD A SCROLL (easiest):
-   *   1. Find the rank block by title (e.g. "Squire")
+   *   1. Find the rank block (e.g. "Squire")
    *   2. Copy any scroll object inside its scrolls: [ ... ] array
    *   3. Give it a unique id within that rank (e.g. 'sq5', 'kn5')
    *   4. Fill title, setup, steps[], counsel
@@ -1933,12 +1944,12 @@
   }
 
   /**
-   * Rank title ladder (1–99) — Grandmaster is the end (97–99).
+   * ORDER RANK (from level) — not streak titles.
+   * Level = 1–99 number · Rank = Page / Squire / Knight / High Legend …
+   * Title (later) = honor from quest consistency streaks.
+   *
    * Page 1–4 · Squire 5–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
    * High Legend 63 · Sage 70 · High Sage 77 · Sentinel 83 · Paragon 90 · Grandmaster 97
-   *
-   * Page is a real early band (not a one-rank flash). Tutorial only awards a small
-   * Aura gift — it does not auto-promote to Squire.
    */
   function rankBand(rank) {
     if (rank >= 97) return 'Grandmaster of the Order';
@@ -2659,7 +2670,7 @@
     }
 
     let html =
-      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Each rank title unlocks its own scrolls. Higher ranks pay more Aura.</p>';
+      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Each Order rank unlocks its own scrolls. Higher ranks pay more Aura.</p>';
 
     for (const path of RANK_SCROLLS) {
       const unlocked = rankGroupUnlocked(path, rank);
