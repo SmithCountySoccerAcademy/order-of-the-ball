@@ -876,8 +876,21 @@
 
   const STORAGE_KEY = 'orderOfTheBall_v1';
   const UNLOCK_KEY = 'orderOfTheBall_unlock_v1';
-  const AURA_PER_BOUT = 40; // each completed scroll / Training Bout
-  const AURA_DAY_BONUS_BASE = 40; // extra when all 3 bouts done (× streak mult)
+  /**
+   * PROGRESSION OWNERSHIP (youth development first)
+   * ----------------------------------------------
+   * Core loop: open scrolls → complete timed work/rest → earn Aura → rank up.
+   * Daily quest: 3 scrolls → Day Conquered bonus (streak multiplies the BONUS only).
+   *
+   * Design goals:
+   * - Early ranks feel rewarding (love the ball / form the habit)
+   * - ~15 min/day (3 short Squire bouts) is enough to progress
+   * - Advanced paths unlock with rank and pay more Aura (skill + reward)
+   * - Grandmaster (97–99) is a long, serious journey — not a weekend grind
+   */
+  const AURA_DAY_BONUS_BASE = 50; // × streak mult on 3rd bout of the day
+  // Fallback if path missing (should not happen)
+  const AURA_PER_BOUT_DEFAULT = 35;
 
   function apiUrl(path) {
     const base = (CONFIG.API_BASE || '').replace(/\/$/, '');
@@ -1031,12 +1044,35 @@
 
   const MAX_RANK = 99;
 
-  /** Cumulative Aura required to *reach* each rank (index = rank - 1). Ranks 1–99. */
+  /**
+   * Cumulative Aura to REACH each rank (index = rank - 1).
+   * Tuned for daily youth training (~3 scrolls/day), not endless grind.
+   * Rough guide at ~150–200 Aura/day early: Rank 10 ~1–2 weeks, Rank 30 ~1–2 months,
+   * Rank 55+ months of consistency, 97–99 long-term mastery.
+   */
   const RANK_AURA = (function () {
-    const a = [0]; // Rank 1
+    const a = [0]; // Rank 1 Page
     for (let r = 2; r <= MAX_RANK; r++) {
-      // Gentle early climb, steeper later — full journey without feeling impossible early
-      const step = 70 + (r - 1) * 28 + Math.floor((r - 1) * (r - 1) * 0.35);
+      let step;
+      if (r <= 10) {
+        // Fast early wins — habit formation
+        step = 45 + (r - 2) * 10;
+      } else if (r <= 30) {
+        // Steady climb through Knight / Guardian
+        step = 100 + (r - 10) * 14;
+      } else if (r <= 55) {
+        // Champion → Legend
+        step = 180 + (r - 30) * 20;
+      } else if (r <= 75) {
+        // Sage band
+        step = 280 + (r - 55) * 28;
+      } else if (r <= 90) {
+        // Sentinel / Paragon approach
+        step = 380 + (r - 75) * 36;
+      } else {
+        // Endgame grind to Grandmaster
+        step = 500 + (r - 90) * 50;
+      }
       a.push(a[r - 2] + step);
     }
     return a;
@@ -1052,7 +1088,9 @@
       id: 'squire',
       name: 'Squire Path',
       unlockRank: 1,
-      focus: 'Foundation footwork',
+      /** Aura per completed scroll on this path */
+      auraReward: 35,
+      focus: 'Love the ball · foundation footwork',
       drills: [
         {
           id: 'sq1',
@@ -1116,8 +1154,9 @@
     {
       id: 'knight',
       name: 'Knight Path',
-      unlockRank: 4,
-      focus: 'Combinations & control',
+      unlockRank: 8,
+      auraReward: 50,
+      focus: 'Combinations & close control',
       drills: [
         {
           id: 'kn1',
@@ -1192,8 +1231,9 @@
     {
       id: 'champion',
       name: 'Champion Path',
-      unlockRank: 8,
-      focus: 'Speed + weak foot',
+      unlockRank: 20,
+      auraReward: 70,
+      focus: 'Speed, weak foot & competitive edge',
       drills: [
         {
           id: 'ch1',
@@ -1282,8 +1322,9 @@
     {
       id: 'legend',
       name: 'Legend Path',
-      unlockRank: 13,
-      focus: 'Eyes-up mastery & flow',
+      unlockRank: 35,
+      auraReward: 95,
+      focus: 'Eyes-up mastery, flow & game vision',
       drills: [
         {
           id: 'lg1',
@@ -1685,56 +1726,62 @@
     return 1;
   }
 
+  function getPathById(pathId) {
+    return PATHS.find((p) => p.id === pathId) || null;
+  }
+
+  /** Aura for completing a scroll on this path (higher paths pay more). */
+  function getScrollAura(pathId) {
+    const path = getPathById(pathId);
+    if (path && path.auraReward) return path.auraReward;
+    return AURA_PER_BOUT_DEFAULT;
+  }
+
+  /** Typical bout Aura for UI estimates (best unlocked path average / squire). */
+  function typicalBoutAura() {
+    if (!state) return AURA_PER_BOUT_DEFAULT;
+    const rank = rankFromAura(state.aura);
+    const unlocked = PATHS.filter((p) => pathUnlocked(p, rank));
+    if (!unlocked.length) return AURA_PER_BOUT_DEFAULT;
+    const sum = unlocked.reduce((s, p) => s + (p.auraReward || AURA_PER_BOUT_DEFAULT), 0);
+    return Math.round(sum / unlocked.length);
+  }
+
   /**
    * Aura economy:
-   * - Every scroll/bout: +AURA_PER_BOUT
-   * - Day Conquered (3rd bout): +AURA_DAY_BONUS_BASE × streak mult
+   * - Every scroll: path.auraReward
+   * - Day Conquered (3rd bout): AURA_DAY_BONUS_BASE × streak mult
    */
-  function previewAura() {
+  function previewAura(pathId) {
     const today = todayKey();
     const already =
       state.boutsToday >= 3 && state.lastConqueredDay === today;
     const streak = already ? state.streak : projectedStreakIfConquerToday();
     const mult = streakMultiplier(streak);
     const dayBonus = Math.round(AURA_DAY_BONUS_BASE * mult);
+    const perBout = pathId ? getScrollAura(pathId) : typicalBoutAura();
     const boutsLeft = already ? 0 : Math.max(0, 3 - state.boutsToday);
-    const boutGainsLeft = boutsLeft * AURA_PER_BOUT;
+    const boutGainsLeft = boutsLeft * perBout;
     const dayBonusLeft = already ? 0 : dayBonus;
     return {
       already,
       streak,
       mult,
-      perBout: AURA_PER_BOUT,
+      perBout,
       dayBonus,
-      /** Total still available if they finish remaining bouts + day bonus today */
       remainingToday: boutGainsLeft + dayBonusLeft,
-      /** Full day if starting fresh: 3 bouts + day bonus */
-      fullDayTotal: AURA_PER_BOUT * 3 + dayBonus,
-    };
-  }
-
-  // Back-compat alias used in older UI calls
-  function previewDayAura() {
-    const p = previewAura();
-    return {
-      already: p.already,
-      streak: p.streak,
-      mult: p.mult,
-      gain: p.already ? p.dayBonus : p.remainingToday,
-      perBout: p.perBout,
-      dayBonus: p.dayBonus,
-      fullDayTotal: p.fullDayTotal,
+      fullDayTotal: perBout * 3 + dayBonus,
     };
   }
 
   function formatAuraLabel(preview) {
     if (preview.already) {
-      return 'Quest complete today · +' + preview.perBout + ' Aura per bout next time';
+      return 'Quest complete today · more scrolls still earn Aura';
     }
     return (
       '+' +
       preview.perBout +
-      ' Aura per bout · +' +
+      ' Aura / scroll · +' +
       preview.dayBonus +
       ' day bonus' +
       (preview.mult > 1 ? ' (' + preview.mult + '×)' : '')
@@ -2010,7 +2057,8 @@
         prog.next.toLocaleString() +
         ' Aura';
       toGo.textContent = need.toLocaleString() + ' Aura to go';
-      const boutsApprox = Math.ceil(need / AURA_PER_BOUT);
+      const typ = typicalBoutAura();
+      const boutsApprox = Math.ceil(need / typ);
       boutHint.textContent =
         need === 0
           ? 'Ready to rank up on next save.'
@@ -2018,9 +2066,9 @@
             boutsApprox +
             ' more bout' +
             (boutsApprox === 1 ? '' : 's') +
-            ' at +' +
-            AURA_PER_BOUT +
-            ' Aura each (before day bonus)';
+            ' at ~+' +
+            typ +
+            ' Aura each (path-based; day bonus extra)';
     }
 
     const conquered = state.boutsToday >= 3;
@@ -2054,14 +2102,15 @@
 
     const btn = document.getElementById('btn-start-bout');
     btn.disabled = false;
+    const typ = typicalBoutAura();
     if (conquered) {
-      btn.textContent = 'Extra practice (+' + AURA_PER_BOUT + ' Aura)';
+      btn.textContent = 'Extra practice (~+' + typ + ' Aura)';
     } else {
       btn.textContent =
         'Enter Training Bout (' +
         (state.boutsToday + 1) +
-        '/3) · +' +
-        AURA_PER_BOUT +
+        '/3) · ~+' +
+        typ +
         ' Aura';
     }
 
@@ -2086,8 +2135,11 @@
     const rank = rankFromAura(state.aura);
     const path = highestUnlockedPath(rank);
     const drills = path.drills;
-    const i = state.totalBouts % drills.length;
-    return { path, drill: drills[i] };
+    // Prefer scrolls not yet completed on this path
+    const incomplete = drills.filter((d) => !isScrollCompleted(path.id, d.id));
+    const pool = incomplete.length ? incomplete : drills;
+    const i = state.totalBouts % pool.length;
+    return { path, drill: pool[i] };
   }
 
   /** Accepts YouTube, youtu.be, Vimeo, or direct .mp4/.webm URLs */
@@ -2161,7 +2213,9 @@
     document.getElementById('bout-drill-steps').innerHTML = drill.steps.map((s) => '<li>' + s + '</li>').join('');
     document.getElementById('bout-counsel').textContent = "Knight’s counsel: " + drill.counsel;
 
-    const auraPrev = previewAura();
+    const pathId = path.id;
+    const scrollAura = getScrollAura(pathId);
+    const auraPrev = previewAura(pathId);
     let auraEl = document.getElementById('bout-aura-reward');
     if (!auraEl) {
       auraEl = document.createElement('p');
@@ -2174,24 +2228,24 @@
     if (auraPrev.already) {
       auraEl.innerHTML =
         'This scroll: <strong>+' +
-        auraPrev.perBout +
-        ' Aura</strong> when you complete the timer (quest already conquered today)';
+        scrollAura +
+        ' Aura</strong> on complete (quest done — still counts)';
     } else if (isThird) {
       auraEl.innerHTML =
         'This scroll: <strong>+' +
-        auraPrev.perBout +
+        scrollAura +
         ' Aura</strong> + Day Conquered <strong>+' +
         auraPrev.dayBonus +
         '</strong>' +
         (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
         ' = <strong>+' +
-        (auraPrev.perBout + auraPrev.dayBonus) +
+        (scrollAura + auraPrev.dayBonus) +
         ' Aura</strong>';
     } else {
       const left = Math.max(0, 3 - state.boutsToday - 1);
       auraEl.innerHTML =
         'This scroll: <strong>+' +
-        auraPrev.perBout +
+        scrollAura +
         ' Aura</strong> on complete' +
         (left > 0
           ? ' · then ' + left + ' more bout' + (left === 1 ? '' : 's') + ' for day bonus +' + auraPrev.dayBonus
@@ -2345,8 +2399,10 @@
       markScrollCompleted(activeDrill.path.id, activeDrill.drill.id);
     }
 
-    // Always grant Aura for finishing a scroll
-    const boutGain = AURA_PER_BOUT;
+    // Always grant Aura for finishing a scroll (amount depends on path)
+    const pathId =
+      activeDrill && activeDrill.path ? activeDrill.path.id : 'squire';
+    const boutGain = getScrollAura(pathId);
     state.aura += boutGain;
     let msg = '⚔️ Scroll complete! +' + boutGain + ' Aura';
 
@@ -2434,10 +2490,11 @@
     const unlocked = pathUnlocked(path, rank);
     const doneCount = path.drills.filter((d) => isScrollCompleted(path.id, d.id)).length;
 
+    const pathAura = getScrollAura(path.id);
     meta.innerHTML = unlocked
       ? path.focus +
         ' · <span class="gold">+' +
-        auraPrev.perBout +
+        pathAura +
         ' Aura</span> each scroll · ' +
         doneCount +
         '/' +
@@ -2454,7 +2511,7 @@
     }
 
     let html =
-      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Tap a scroll to train. ✓ Completed scrolls can be repeated for more Aura.</p>';
+      '<p class="muted" style="margin-bottom:12px;font-size:0.8rem">Tap a scroll to train. Higher paths grant more Aura. ✓ Completed = still replayable.</p>';
 
     for (const d of path.drills) {
       const done = isScrollCompleted(path.id, d.id);
@@ -2493,7 +2550,7 @@
         (timeHint ? ' · ' + timeHint : '') +
         '</p>' +
         '<p class="gold" style="margin-top:6px;font-size:0.75rem;font-weight:600">+' +
-        auraPrev.perBout +
+        pathAura +
         ' Aura' +
         (done
           ? ' · replay anytime' + (times > 1 ? ' · done ×' + times : '')
