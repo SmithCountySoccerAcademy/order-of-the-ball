@@ -234,20 +234,6 @@
     }
     .stat .v { font-family: var(--display); font-size: 1.25rem; color: var(--gold-bright); font-weight: 700; }
     .stat .l { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(243,230,200,0.5); margin-top: 2px; }
-    .help-q {
-      display: inline-block;
-      width: 1em;
-      height: 1em;
-      line-height: 1;
-      border-radius: 50%;
-      border: 1px solid rgba(212,175,55,0.5);
-      color: var(--gold);
-      font-size: 0.65em;
-      vertical-align: middle;
-      margin-left: 2px;
-      padding: 1px 3px 2px;
-    }
-
     .rankup-bg {
       position: fixed;
       inset: 0;
@@ -692,15 +678,15 @@
         <div class="stat-grid" style="margin-bottom:12px">
           <button type="button" class="stat stat-tap" data-help="streak" aria-label="Quest streak info">
             <div class="v" id="hall-streak">0</div>
-            <div class="l">Quest streak <span class="help-q">?</span></div>
+            <div class="l">Quest streak</div>
           </button>
           <button type="button" class="stat stat-tap" data-help="mult" aria-label="Multiplier info">
             <div class="v" id="hall-mult">1.0×</div>
-            <div class="l">Multiplier <span class="help-q">?</span></div>
+            <div class="l">Multiplier</div>
           </button>
           <button type="button" class="stat stat-tap" data-help="shields" aria-label="Shields info">
             <div class="v" id="hall-shields">0</div>
-            <div class="l">Shields 🛡️ <span class="help-q">?</span></div>
+            <div class="l">Shields 🛡️</div>
           </button>
         </div>
 
@@ -2994,6 +2980,10 @@
     document.getElementById('btn-refresh-lb').addEventListener('click', fetchLeaderboard);
     document.getElementById('modal-bg').addEventListener('click', (e) => {
       if (e.target.id === 'modal-bg') closeModal();
+    });
+    document.getElementById('btn-rankup-dismiss').addEventListener('click', dismissRankUp);
+    document.getElementById('rankup-bg').addEventListener('click', (e) => {
+      if (e.target.id === 'rankup-bg') dismissRankUp();
     });
 
     document.querySelectorAll('.stat-tap[data-help]').forEach((btn) => {
