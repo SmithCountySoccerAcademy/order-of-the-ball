@@ -221,9 +221,32 @@
       background: rgba(0,0,0,0.2);
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.06);
+      width: 100%;
+      color: inherit;
+    }
+    .stat-tap {
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .stat-tap:active, .stat-tap:hover {
+      border-color: rgba(212,175,55,0.45);
+      background: rgba(212,175,55,0.08);
     }
     .stat .v { font-family: var(--display); font-size: 1.25rem; color: var(--gold-bright); font-weight: 700; }
     .stat .l { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(243,230,200,0.5); margin-top: 2px; }
+    .help-q {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      line-height: 1;
+      border-radius: 50%;
+      border: 1px solid rgba(212,175,55,0.5);
+      color: var(--gold);
+      font-size: 0.65em;
+      vertical-align: middle;
+      margin-left: 2px;
+      padding: 1px 3px 2px;
+    }
 
     .bout-track { display: flex; gap: 8px; margin-top: 12px; }
     .bout-pip {
@@ -596,9 +619,18 @@
         </div>
 
         <div class="stat-grid" style="margin-bottom:12px">
-          <div class="stat"><div class="v" id="hall-streak">0</div><div class="l">Quest streak</div></div>
-          <div class="stat"><div class="v" id="hall-mult">1.0×</div><div class="l">Multiplier</div></div>
-          <div class="stat"><div class="v" id="hall-shields">0</div><div class="l">Shields 🛡️</div></div>
+          <button type="button" class="stat stat-tap" data-help="streak" aria-label="Quest streak info">
+            <div class="v" id="hall-streak">0</div>
+            <div class="l">Quest streak <span class="help-q">?</span></div>
+          </button>
+          <button type="button" class="stat stat-tap" data-help="mult" aria-label="Multiplier info">
+            <div class="v" id="hall-mult">1.0×</div>
+            <div class="l">Multiplier <span class="help-q">?</span></div>
+          </button>
+          <button type="button" class="stat stat-tap" data-help="shields" aria-label="Shields info">
+            <div class="v" id="hall-shields">0</div>
+            <div class="l">Shields 🛡️ <span class="help-q">?</span></div>
+          </button>
         </div>
 
         <div class="card" style="margin-bottom:12px">
@@ -2813,6 +2845,85 @@
     document.getElementById('modal-bg').addEventListener('click', (e) => {
       if (e.target.id === 'modal-bg') closeModal();
     });
+
+    document.querySelectorAll('.stat-tap[data-help]').forEach((btn) => {
+      btn.addEventListener('click', () => showStatHelp(btn.dataset.help));
+    });
+  }
+
+  function showStatHelp(kind) {
+    const streak = state ? state.streak : 0;
+    const shields = state ? state.shields : 0;
+    const mult = streakMultiplier(state ? state.streak : 0);
+    const multPct = Math.round((mult - 1) * 100);
+
+    let title = '';
+    let body = '';
+
+    if (kind === 'streak') {
+      title = 'Quest streak';
+      body =
+        '<p style="margin-bottom:10px;line-height:1.5">Your <strong class="gold">quest streak</strong> is how many days in a row you have conquered the day (finished all <strong>3 Training Bouts</strong>).</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">You currently have a <strong class="gold">' +
+        streak +
+        '-day</strong> streak' +
+        (state && state.bestStreak
+          ? ' (best ever: <strong class="gold">' + state.bestStreak + '</strong>)'
+          : '') +
+        '.</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">Miss a day and the streak can drop — but you get <strong class="gold">1 free grace day</strong>, then <strong class="gold">Shields</strong> can save it.</p>' +
+        '<p class="muted" style="font-size:0.85rem;line-height:1.45">Aura and rank are never wiped when a streak breaks — only the streak counter.</p>';
+    } else if (kind === 'mult') {
+      title = 'Multiplier';
+      body =
+        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura (not the +' +
+        AURA_PER_BOUT +
+        ' you get for each scroll).</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">Your streak is <strong class="gold">' +
+        streak +
+        '</strong> → multiplier <strong class="gold">' +
+        mult +
+        '×</strong>' +
+        (mult > 1 ? ' (+' + multPct + '% day bonus)' : '') +
+        '.</p>' +
+        '<p style="margin-bottom:8px;line-height:1.5"><strong class="gold">Streak → mult</strong></p>' +
+        '<ul class="steps" style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.55">' +
+        '<li>1 day → <strong>1.0×</strong></li>' +
+        '<li>2–3 days → <strong>1.25×</strong></li>' +
+        '<li>4–6 days → <strong>1.5×</strong></li>' +
+        '<li>7+ days → <strong>2.0×</strong></li>' +
+        '</ul>' +
+        '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">Day bonus base is +' +
+        AURA_DAY_BONUS_BASE +
+        ' Aura, then × your mult when you finish bout 3.</p>';
+    } else if (kind === 'shields') {
+      title = 'Streak Shields';
+      body =
+        '<p style="margin-bottom:10px;line-height:1.5"><strong class="gold">Shields</strong> protect your quest streak if you miss training days (after your free grace day).</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">You have <strong class="gold">' +
+        shields +
+        '</strong> shield' +
+        (shields === 1 ? '' : 's') +
+        ' right now.</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">Earn more at title milestones:</p>' +
+        '<ul class="steps" style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.55">' +
+        '<li>7-day streak → Week Warrior · <strong>+1 shield</strong></li>' +
+        '<li>14-day → Fortnight Knight · <strong>+1 shield</strong></li>' +
+        '<li>30-day → Unbreakable · <strong>+2 shields</strong></li>' +
+        '</ul>' +
+        '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">New pages start with 1 shield. Shields do not protect Aura — only the streak.</p>';
+    } else {
+      return;
+    }
+
+    openModal(
+      '<h2 style="color:var(--gold-bright);margin-bottom:12px">' +
+        title +
+        '</h2>' +
+        body +
+        '<button type="button" class="btn btn-gold" style="margin-top:18px" id="modal-close-help">Got it</button>'
+    );
+    document.getElementById('modal-close-help').onclick = closeModal;
   }
 
   async function boot() {
