@@ -534,6 +534,29 @@
       </div>
     </section>
 
+    <!-- TUTORIAL (Page → Squire) -->
+    <section class="screen" id="screen-tutorial">
+      <div class="screen-scroll" style="display:flex;flex-direction:column;justify-content:center;gap:16px;padding-top:16px;">
+        <div style="text-align:center">
+          <div class="brand-logo-wrap">
+            <img class="brand-logo brand-logo-sm" src="assets/logo.jpg" alt="" width="56" height="56" />
+          </div>
+          <p class="tag" style="margin-top:10px" id="tut-step-tag">Step 1 of 4</p>
+          <h1 class="hero-title" style="font-size:1.45rem;margin-top:8px" id="tut-title">Welcome, Page</h1>
+          <p class="subtitle" id="tut-body" style="margin-top:10px;text-align:left;max-width:22rem;margin-left:auto;margin-right:auto"></p>
+        </div>
+        <div class="card" id="tut-card" style="display:none"></div>
+        <div class="card" id="tut-mini-timer" style="display:none;text-align:center">
+          <div id="tut-phase-badge" class="phase-badge work">Work</div>
+          <div class="timer phase-work" id="tut-timer" style="font-size:2.75rem">0:20</div>
+          <p class="muted" id="tut-timer-meta" style="margin-top:6px">Round 1 of 2</p>
+          <button type="button" class="btn btn-royal" style="margin-top:12px" id="btn-tut-timer">Begin practice</button>
+        </div>
+        <button type="button" class="btn btn-gold" id="btn-tut-next">Continue</button>
+        <button type="button" class="btn btn-ghost" id="btn-tut-skip" style="font-size:0.75rem">Skip tutorial</button>
+      </div>
+    </section>
+
     <!-- HALL -->
     <section class="screen" id="screen-hall">
       <div class="screen-scroll">
@@ -738,7 +761,6 @@
   }
 
   async function enterApp() {
-    document.getElementById('main-nav').classList.add('visible');
     state = await loadWithFallback();
     // Recover unlock from IndexedDB if localStorage lost it
     if (!getUnlockToken()) {
@@ -746,8 +768,20 @@
       if (tok && typeof tok === 'string') setUnlockToken(tok);
     }
     if (state && state.name) {
+      // Existing saves from before tutorial: don't force re-run
+      if (state.tutorialDone !== true) {
+        if (state.aura >= auraNeededForRank(2) || state.totalBouts > 0) {
+          state.tutorialDone = true;
+        }
+      }
       ensureDayBoundary();
       save(); // re-mirror to both stores
+      if (!state.tutorialDone) {
+        document.getElementById('main-nav').classList.remove('visible');
+        startTutorial();
+        return;
+      }
+      document.getElementById('main-nav').classList.add('visible');
       showScreen('hall');
     } else {
       document.getElementById('main-nav').classList.remove('visible');
@@ -1278,9 +1312,33 @@
       lastConqueredDay: null,
       lastSeenDay: null,
       totalBouts: 0,
+      tutorialDone: false,
       createdAt: new Date().toISOString(),
     };
   }
+
+  const TUTORIAL_DRILL = {
+    title: 'Page’s First Touches',
+    setup: 'One ball · stand in a small square (about 5×5)',
+    steps: [
+      'Keep the ball close with soft toe taps.',
+      'WORK: light taps — left, right, left, right.',
+      'REST: hold the ball still under your foot.',
+      'Stay inside your square the whole time.',
+    ],
+    counsel: 'Every knight was once a page. Slow and proud beats fast and sloppy.',
+    timing: { workSec: 20, restSec: 10, rounds: 2 },
+  };
+
+  let tutStep = 0;
+  let tutTimer = {
+    segments: [],
+    index: 0,
+    remaining: 0,
+    running: false,
+    handle: null,
+    finished: false,
+  };
 
   const IDB_NAME = 'OrderOfTheBallDB';
   const IDB_STORE = 'saves';
@@ -2264,7 +2322,7 @@
   function beginOrder() {
     const name = document.getElementById('input-name').value.trim();
     if (!name) {
-      toast('Every knight needs a name.');
+      toast('Every page needs a name.');
       return;
     }
     state = defaultState();
@@ -2272,10 +2330,209 @@
     state.emblem = selectedEmblem;
     state.boutDay = todayKey();
     state.lastSeenDay = todayKey();
+    state.tutorialDone = false;
+    save();
+    document.getElementById('main-nav').classList.remove('visible');
+    startTutorial();
+    toast('Welcome, Page ' + state.name + '.');
+  }
+
+  function auraNeededForRank(rank) {
+    return RANK_AURA[rank - 1] != null ? RANK_AURA[rank - 1] : 0;
+  }
+
+  function stopTutTimer() {
+    if (tutTimer.handle) {
+      clearInterval(tutTimer.handle);
+      tutTimer.handle = null;
+    }
+    tutTimer.running = false;
+  }
+
+  function resetTutTimer() {
+    stopTutTimer();
+    tutTimer.segments = buildSegments(TUTORIAL_DRILL);
+    tutTimer.index = 0;
+    tutTimer.finished = false;
+    tutTimer.running = false;
+    tutTimer.remaining = tutTimer.segments[0] ? tutTimer.segments[0].sec : 20;
+    updateTutTimerUI();
+  }
+
+  function updateTutTimerUI() {
+    const el = document.getElementById('tut-timer');
+    const badge = document.getElementById('tut-phase-badge');
+    const meta = document.getElementById('tut-timer-meta');
+    const btn = document.getElementById('btn-tut-timer');
+    const next = document.getElementById('btn-tut-next');
+    const seg = tutTimer.segments[tutTimer.index];
+
+    if (tutTimer.finished || !seg) {
+      el.textContent = '0:00';
+      el.className = 'timer done';
+      el.style.fontSize = '2.75rem';
+      badge.textContent = 'Complete';
+      badge.className = 'phase-badge done';
+      meta.textContent = 'Practice complete!';
+      btn.style.display = 'none';
+      next.disabled = false;
+      next.textContent = 'Claim Squire rank';
+      return;
+    }
+
+    el.textContent = formatTime(tutTimer.remaining);
+    const isRest = seg.type === 'rest';
+    el.className = 'timer phase-' + (isRest ? 'rest' : 'work');
+    el.style.fontSize = '2.75rem';
+    badge.textContent = (seg.label || (isRest ? 'Rest' : 'Work')).toUpperCase();
+    badge.className = 'phase-badge ' + (isRest ? 'rest' : 'work');
+    meta.textContent =
+      (isRest ? 'Rest after round ' : 'Round ') +
+      (seg.round || tutTimer.index + 1) +
+      ' of ' +
+      (seg.rounds || tutTimer.segments.filter((s) => s.type === 'work').length);
+    btn.style.display = '';
+    btn.textContent = tutTimer.running ? 'Pause' : tutTimer.index === 0 && tutTimer.remaining === seg.sec ? 'Begin practice' : 'Resume';
+    next.disabled = true;
+    next.textContent = 'Finish practice first…';
+  }
+
+  function advanceTutSegment() {
+    tutTimer.index += 1;
+    if (tutTimer.index >= tutTimer.segments.length) {
+      tutTimer.finished = true;
+      stopTutTimer();
+      updateTutTimerUI();
+      toast('Practice complete!');
+      return;
+    }
+    tutTimer.remaining = tutTimer.segments[tutTimer.index].sec;
+    updateTutTimerUI();
+  }
+
+  function startTutTimerInterval() {
+    if (tutTimer.finished) return;
+    stopTutTimer();
+    tutTimer.running = true;
+    tutTimer.handle = setInterval(function () {
+      if (tutTimer.remaining <= 1) {
+        advanceTutSegment();
+        return;
+      }
+      tutTimer.remaining -= 1;
+      updateTutTimerUI();
+    }, 1000);
+    updateTutTimerUI();
+  }
+
+  function renderTutorialStep() {
+    const tag = document.getElementById('tut-step-tag');
+    const title = document.getElementById('tut-title');
+    const body = document.getElementById('tut-body');
+    const card = document.getElementById('tut-card');
+    const mini = document.getElementById('tut-mini-timer');
+    const next = document.getElementById('btn-tut-next');
+    const skip = document.getElementById('btn-tut-skip');
+
+    mini.style.display = 'none';
+    card.style.display = 'none';
+    next.disabled = false;
+    skip.style.display = '';
+
+    if (tutStep === 0) {
+      tag.textContent = 'Step 1 of 4';
+      title.textContent = 'Welcome, Page ' + (state.name || '');
+      body.innerHTML =
+        'You begin as a <strong class="gold">Page</strong> — the first step in the Order.<br><br>' +
+        'This short tutorial will teach the basics and raise you to <strong class="gold">Squire</strong> (Rank 2).';
+      next.textContent = 'How do I train?';
+    } else if (tutStep === 1) {
+      tag.textContent = 'Step 2 of 4';
+      title.textContent = 'The daily quest';
+      body.innerHTML =
+        'Each day, complete <strong class="gold">3 Training Bouts</strong>.<br><br>' +
+        'Each bout is one scroll (drill) with a <strong class="gold">work / rest</strong> timer — follow the gold WORK and blue REST calls.<br><br>' +
+        'Finish all 3 → <strong class="gold">Day Conquered</strong> → earn Aura and grow your streak.';
+      card.style.display = '';
+      card.innerHTML =
+        '<p style="font-size:0.9rem"><strong class="gold">Gear:</strong> one soccer ball<br>' +
+        '<strong class="gold">Space:</strong> about 5×5 feet (anywhere safe)<br>' +
+        '<strong class="gold">Aura:</strong> experience that raises your rank</p>';
+      next.textContent = 'Show me a practice bout';
+    } else if (tutStep === 2) {
+      tag.textContent = 'Step 3 of 4';
+      title.textContent = TUTORIAL_DRILL.title;
+      body.innerHTML =
+        '<strong>' +
+        TUTORIAL_DRILL.setup +
+        '</strong><br><br>' +
+        TUTORIAL_DRILL.steps.map((s) => '• ' + s).join('<br>') +
+        '<br><br><em class="gold">Knight’s counsel:</em> ' +
+        TUTORIAL_DRILL.counsel +
+        '<br><br>Run the short timer below (2 work rounds). Then we’ll promote you.';
+      mini.style.display = '';
+      resetTutTimer();
+      next.textContent = 'Finish practice first…';
+      next.disabled = true;
+    } else if (tutStep === 3) {
+      tag.textContent = 'Step 4 of 4';
+      title.textContent = 'Rise to Squire';
+      const need = auraNeededForRank(2);
+      body.innerHTML =
+        'You have proven the path.<br><br>' +
+        'We grant you enough <strong class="gold">Aura</strong> to leave Page behind and stand as a <strong class="gold">Squire of the Order</strong> (Rank 2).<br><br>' +
+        'From the Hall: train 3 bouts a day, open Scrolls, and climb toward Knight and beyond.';
+      card.style.display = '';
+      card.innerHTML =
+        '<p class="gold" style="font-weight:700;text-align:center">+' +
+        need +
+        ' Aura · Rank 2 · Squire</p>' +
+        '<p class="muted" style="text-align:center;margin-top:8px;font-size:0.8rem">You also keep your starting Streak Shield.</p>';
+      next.textContent = 'Enter the Hall';
+      skip.style.display = 'none';
+    }
+  }
+
+  function startTutorial() {
+    tutStep = 0;
+    stopTutTimer();
+    showScreen('tutorial');
+    renderTutorialStep();
+  }
+
+  function finishTutorial(skipped) {
+    stopTutTimer();
+    if (!state) return;
+    // Promote to Squire (Rank 2) — exact Aura threshold
+    const squireAura = auraNeededForRank(2);
+    if (state.aura < squireAura) state.aura = squireAura;
+    state.tutorialDone = true;
+    // Gentle head start for the first day feel without auto-conquering
+    if (!state.totalBouts) state.totalBouts = 0;
     save();
     document.getElementById('main-nav').classList.add('visible');
     showScreen('hall');
-    toast('The Order accepts you, ' + state.name + '.');
+    if (skipped) {
+      toast('Squire rank granted. The Hall awaits, ' + state.name + '!');
+    } else {
+      toast('You are Squire ' + state.name + ' · Rank ' + rankFromAura(state.aura) + '!');
+    }
+  }
+
+  function tutorialNext() {
+    if (tutStep === 2 && !tutTimer.finished) {
+      toast('Complete the short practice timer first.');
+      return;
+    }
+    if (tutStep >= 3) {
+      finishTutorial(false);
+      return;
+    }
+    tutStep += 1;
+    if (tutStep === 3 && !tutTimer.finished && document.getElementById('tut-mini-timer').style.display !== 'none') {
+      // coming from step 2 only if finished
+    }
+    renderTutorialStep();
   }
 
   function bindAppEvents() {
@@ -2287,6 +2544,20 @@
     });
 
     document.getElementById('btn-begin').addEventListener('click', beginOrder);
+
+    document.getElementById('btn-tut-next').addEventListener('click', tutorialNext);
+    document.getElementById('btn-tut-skip').addEventListener('click', () => {
+      if (confirm('Skip the tutorial and become a Squire now?')) finishTutorial(true);
+    });
+    document.getElementById('btn-tut-timer').addEventListener('click', () => {
+      if (tutTimer.finished) return;
+      if (tutTimer.running) {
+        stopTutTimer();
+        updateTutTimerUI();
+      } else {
+        startTutTimerInterval();
+      }
+    });
 
     document.getElementById('main-nav').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-nav]');
