@@ -642,7 +642,7 @@
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
             <li>Levels 1–99 · ranks · streak honors · ball mastery scrolls</li>
-            <li>Page → Grandmaster rank scrolls · growing library</li>
+            <li>Initiate → Grandmaster rank scrolls · growing library</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
         </div>
@@ -677,7 +677,7 @@
           <label class="muted" for="input-name" style="display:block;margin-bottom:6px">Your name only (don’t type Sir or Lady here)</label>
           <input class="field" id="input-name" maxlength="18" placeholder="e.g. Ella" autocomplete="nickname" />
           <p class="muted" style="margin-top:10px;font-size:0.8rem;line-height:1.45">
-            You’ll be: <strong class="gold" id="onboard-preview">Page …</strong>
+            You’ll be: <strong class="gold" id="onboard-preview">Initiate …</strong>
           </p>
           <p class="muted" style="margin-top:14px;margin-bottom:8px">Choose your emblem</p>
           <div class="emblem-grid" id="emblem-grid"></div>
@@ -687,7 +687,7 @@
       </div>
     </section>
 
-    <!-- TUTORIAL (Page orientation) -->
+    <!-- TUTORIAL (Initiate orientation) -->
     <section class="screen" id="screen-tutorial">
       <div class="screen-scroll" style="display:flex;flex-direction:column;justify-content:center;gap:16px;padding-top:16px;">
         <div style="text-align:center">
@@ -695,7 +695,7 @@
             <img class="brand-logo brand-logo-sm" src="assets/logo.jpg" alt="" width="56" height="56" />
           </div>
           <p class="tag" style="margin-top:10px" id="tut-step-tag">Step 1 of 4</p>
-          <h1 class="hero-title" style="font-size:1.45rem;margin-top:8px" id="tut-title">Welcome, Page</h1>
+          <h1 class="hero-title" style="font-size:1.45rem;margin-top:8px" id="tut-title">Welcome, Initiate</h1>
           <p class="subtitle" id="tut-body" style="margin-top:10px;text-align:left;max-width:22rem;margin-left:auto;margin-right:auto"></p>
         </div>
         <div class="card" id="tut-card" style="display:none"></div>
@@ -772,7 +772,7 @@
       <div class="screen-scroll">
         <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;margin-bottom:12px" id="btn-bout-back">← Hall</button>
         <div class="card card-parchment" style="margin-bottom:12px">
-          <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Page</span>
+          <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Initiate</span>
           <h2 style="margin-top:8px;font-size:1.35rem" id="bout-drill-title">Drill</h2>
           <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="bout-drill-setup"></p>
           <ol class="steps" id="bout-drill-steps"></ol>
@@ -816,7 +816,7 @@
           <div class="crest" id="rank-emblem" style="margin:0 auto 12px">⚔️</div>
           <h2 class="gold" id="rank-title">Level 1</h2>
           <p class="muted" style="font-size:0.75rem;margin-top:4px">Your rank</p>
-          <p class="gold" style="font-weight:700;margin-top:2px" id="rank-band">Page of the Order</p>
+          <p class="gold" style="font-weight:700;margin-top:2px" id="rank-band">Initiate of the Order</p>
           <div style="margin-top:14px;text-align:left">
             <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px">
               <span class="muted">Aura to next level</span>
@@ -828,7 +828,7 @@
         <div class="card" style="margin-bottom:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:10px">Scrolls by Rank</h3>
           <p class="muted" style="font-size:0.75rem;margin-bottom:10px;line-height:1.4">
-            Scrolls unlock with your <strong class="gold">rank</strong> (Page, Squire, Knight…). Higher ranks pay more Aura.
+            Scrolls unlock with your <strong class="gold">rank</strong> (Initiate, Squire, Knight…). Higher ranks pay more Aura.
           </p>
           <div class="list" id="rank-paths"></div>
         </div>
@@ -864,7 +864,7 @@
           </div>
           <div class="crest crest-sm" id="arena-emblem" style="margin:0 auto 10px">⚔️</div>
           <h2 style="color:var(--gold-bright);font-size:1.3rem" id="arena-name">Knight</h2>
-          <p style="color:rgba(243,230,200,0.7);margin-top:4px" id="arena-rank">Level 1 · Page</p>
+          <p style="color:rgba(243,230,200,0.7);margin-top:4px" id="arena-rank">Level 1 · Initiate</p>
           <p style="margin-top:12px;font-size:0.85rem;color:var(--gold)" id="arena-stats">0 Aura · 0 day streak</p>
           <p style="margin-top:8px;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(243,230,200,0.4)">Order of the Ball</p>
         </div>
@@ -933,7 +933,7 @@
    *
    * Design goals:
    * - Early ranks feel rewarding (love the ball / form the habit)
-   * - ~15 min/day (3 short Page/Squire bouts) is enough to progress
+   * - ~15 min/day (3 short Initiate/Squire bouts) is enough to progress
    * - Higher Order ranks unlock more scrolls and pay more Aura
    * - Grandmaster (97–99) is a long, serious journey — not a weekend grind
    */
@@ -1171,7 +1171,7 @@
    * Rank 55+ months of consistency, 97–99 long-term mastery.
    */
   const RANK_AURA = (function () {
-    const a = [0]; // Rank 1 Page
+    const a = [0]; // Level 1 Initiate
     for (let r = 2; r <= MAX_RANK; r++) {
       let step;
       if (r <= 10) {
@@ -1200,16 +1200,16 @@
 
   /**
    * ═══════════════════════════════════════════════════════════════════
-   * SCROLL LIBRARY — one block per Order rank (Page, Squire, Knight, …)
+   * SCROLL LIBRARY — one block per Order rank (Initiate, Squire, Knight, …)
    * ═══════════════════════════════════════════════════════════════════
    *
    * Display name = Order rank. Unlocks match rankBand() levels:
-   *   Page 1 · Squire 5 · Knight 10 · Guardian 30 · Champion 40 · …
+   *   Initiate 1 · Squire 5 · Knight 10 · Guardian 30 · Champion 40 · …
    *
    * HOW TO ADD A SCROLL (easiest):
-   *   1. Find the rank block (e.g. "Page")
+   *   1. Find the rank block (e.g. "Initiate")
    *   2. Copy any scroll object inside its scrolls: [ ... ] array
-   *   3. Give it a unique id within that rank (e.g. 'pg5', 'sq5')
+   *   3. Give it a unique id within that rank (e.g. 'in5', 'sq5')
    *   4. Fill title, setup, steps[], counsel
    *   5. Optional: video (YouTube/Vimeo/mp4 URL), timing
    *
@@ -1221,19 +1221,19 @@
    *   { workSec, restSec, rounds }  → interval blocks
    *   { segments: [{ type:'work'|'rest', sec, label? }] }
    *
-   * Save keys use "{id}:{scrollId}" (e.g. page:pg1) — never rename ids.
+   * Save keys use "{id}:{scrollId}" (e.g. initiate:in1) — never rename ids.
    * ═══════════════════════════════════════════════════════════════════
    */
   const RANK_SCROLLS = [
     {
-      id: 'page',
-      title: 'Page',
+      id: 'initiate',
+      title: 'Initiate',
       unlockRank: 1,
       auraReward: 25,
       focus: 'Balance · coordination · body control',
       scrolls: [
         {
-          id: 'pg1',
+          id: 'in1',
           title: 'Stork of the Yard',
           setup: 'Bare feet or shoes · 5×5 · no ball required · ~4 min',
           video: '',
@@ -1244,10 +1244,10 @@
             'REST: both feet down, shake out ankles.',
             'Eyes on a fixed spot ahead — not at your feet.',
           ],
-          counsel: 'A page learns to own the ground before they own the ball.',
+          counsel: 'An initiate learns to own the ground before they own the ball.',
         },
         {
-          id: 'pg2',
+          id: 'in2',
           title: 'Soft-Knee March',
           setup: 'Stand in place · arms free · ~4 min',
           video: '',
@@ -1261,7 +1261,7 @@
           counsel: 'Quiet feet win wars. Loud feet warn the enemy.',
         },
         {
-          id: 'pg3',
+          id: 'in3',
           title: 'Line Walk — Heel to Toe',
           setup: 'Imagine a straight line (or use a crack / tape) · ~4 min',
           video: '',
@@ -1275,7 +1275,7 @@
           counsel: 'Balance is a conversation with gravity. Speak softly.',
         },
         {
-          id: 'pg4',
+          id: 'in4',
           title: 'Side-Step Guard',
           setup: 'Athletic stance · knees soft · ~4 min',
           video: '',
@@ -1289,7 +1289,7 @@
           counsel: 'Lateral steps are a defender’s alphabet. Learn the letters early.',
         },
         {
-          id: 'pg5',
+          id: 'in5',
           title: 'Ball Under Sole — Stillness',
           setup: 'One ball · sole of the foot on top · ~4 min',
           video: '',
@@ -1303,8 +1303,8 @@
           counsel: 'First touch with the ball is friendship, not combat.',
         },
         {
-          id: 'pg6',
-          title: 'Sit & Stand of the Page',
+          id: 'in6',
+          title: 'Sit & Stand of the Initiate',
           setup: 'No ball · clear floor · ~4 min',
           video: '',
           timing: { workSec: 20, restSec: 15, rounds: 6 },
@@ -1316,7 +1316,7 @@
           ],
           counsel: 'The body that rises with control will later rise with the ball.',
         },
-        // → paste more Page scrolls above this comment
+        // → paste more Initiate scrolls above this comment
       ],
     },
     {
@@ -1926,7 +1926,7 @@
 
   /** Short practice bout in the tutorial (not a full scroll). */
   const TUTORIAL_DRILL = {
-    title: 'Page’s First Touches',
+    title: 'Initiate’s First Touches',
     setup: 'One ball · stand in a small square (about 5×5)',
     steps: [
       'Keep the ball close with soft toe taps.',
@@ -1934,7 +1934,7 @@
       'REST: hold the ball still under your foot.',
       'Stay inside your square the whole time.',
     ],
-    counsel: 'Every knight was once a page. Slow and proud beats fast and sloppy.',
+    counsel: 'Every knight was once an initiate. Slow and proud beats fast and sloppy.',
     timing: { workSec: 20, restSec: 10, rounds: 2 },
   };
 
@@ -2216,10 +2216,10 @@
 
   /**
    * ORDER RANK (from level) — not streak honors.
-   * Level = 1–99 · Rank = Page / Squire / Knight / High Legend …
+   * Level = 1–99 · Rank = Initiate / Squire / Knight / High Legend …
    * Honor = epithet from quest streak (the Brave, the Relentless…)
    *
-   * Page 1–4 · Squire 5–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
+   * Initiate 1–4 · Squire 5–9 · Knight 10 · Guardian 30 · Champion 40 · Legend 55 ·
    * High Legend 63 · Sage 70 · High Sage 77 · Sentinel 83 · Paragon 90 · Grandmaster 97
    */
   function rankBand(rank) {
@@ -2234,7 +2234,7 @@
     if (rank >= 30) return 'Guardian of the Order';
     if (rank >= 10) return 'Knight of the Order';
     if (rank >= 5) return 'Squire of the Order'; // levels 5–9
-    return 'Page of the Order'; // levels 1–4
+    return 'Initiate of the Order'; // levels 1–4
   }
 
   function rankShort(level) {
@@ -2260,7 +2260,7 @@
 
   /**
    * Full proclamation: Rank [Style] Name [Honor]
-   * e.g. "Squire Lady Ella the Brave" · "Page Kevin"
+   * e.g. "Squire Lady Ella the Brave" · "Initiate Kevin"
    */
   function formatProclamation() {
     if (!state || !state.name) return '—';
@@ -2574,7 +2574,7 @@
     if (!el) return;
     const raw = (document.getElementById('input-name') || {}).value || '';
     const name = stripStyleFromName(raw.trim()) || '…';
-    const parts = ['Page'];
+    const parts = ['Initiate'];
     if (selectedStylePrefix) parts.push(selectedStylePrefix);
     parts.push(name);
     el.textContent = parts.join(' ');
@@ -2965,7 +2965,7 @@
 
     // Always grant Aura for finishing a scroll (amount depends on path)
     const pathId =
-      activeDrill && activeDrill.path ? activeDrill.path.id : 'page';
+      activeDrill && activeDrill.path ? activeDrill.path.id : 'initiate';
     const boutGain = getScrollAura(pathId);
     state.aura += boutGain;
     let msg = '⚔️ Scroll complete! +' + boutGain + ' Aura';
@@ -3442,7 +3442,7 @@
       document.getElementById('input-name').value.trim()
     );
     if (!name) {
-      toast('Every page needs a name.');
+      toast('Every initiate needs a name.');
       return;
     }
     state = defaultState();
@@ -3577,9 +3577,9 @@
 
     if (tutStep === 0) {
       tag.textContent = 'Step 1 of 4';
-      title.textContent = 'Welcome, Page ' + (state.name || '');
+      title.textContent = 'Welcome, Initiate ' + (state.name || '');
       body.innerHTML =
-        'You begin as a <strong class="gold">Page</strong> — ranks 1–4 in the Order.<br><br>' +
+        'You begin as an <strong class="gold">Initiate</strong> — levels 1–4 in the Order.<br><br>' +
         'This short tutorial teaches the basics. You earn a little <strong class="gold">Aura</strong> for the practice, then train your way up to <strong class="gold">Squire</strong> and beyond.';
       next.textContent = 'How do I train?';
     } else if (tutStep === 1) {
@@ -3614,16 +3614,16 @@
       tag.textContent = 'Step 4 of 4';
       title.textContent = 'Enter the Hall';
       body.innerHTML =
-        'Solid first steps, Page.<br><br>' +
+        'Solid first steps, Initiate.<br><br>' +
         'You earn <strong class="gold">+' +
         TUTORIAL_AURA_COMPLETE +
         ' Aura</strong> for the practice — enough to feel progress, not a free rank-up.<br><br>' +
-        'From the Hall: train <strong class="gold">3 bouts a day</strong>, open Scrolls, and climb through Page into <strong class="gold">Squire</strong> (Level 5+) and beyond.';
+        'From the Hall: train <strong class="gold">3 bouts a day</strong>, open Scrolls, and climb through Initiate into <strong class="gold">Squire</strong> (Level 5+) and beyond.';
       card.style.display = '';
       card.innerHTML =
         '<p class="gold" style="font-weight:700;text-align:center">+' +
         TUTORIAL_AURA_COMPLETE +
-        ' Aura · still Page</p>' +
+        ' Aura · still Initiate</p>' +
         '<p class="muted" style="text-align:center;margin-top:8px;font-size:0.8rem">You keep your starting Streak Shield. Squire comes from real training.</p>';
       next.textContent = 'Enter the Hall';
       skip.style.display = 'none';
@@ -3652,8 +3652,8 @@
     if (!ranked) {
       toast(
         skipped
-          ? 'Welcome to the Hall, Page ' + state.name + '!'
-          : 'Practice complete! +' + reward + ' Aura · Welcome, Page ' + state.name + '!'
+          ? 'Welcome to the Hall, ' + formatProclamation() + '!'
+          : 'Practice complete! +' + reward + ' Aura · Welcome, ' + formatProclamation() + '!'
       );
     }
   }
@@ -3732,7 +3732,7 @@
 
     on('btn-tut-next', 'click', tutorialNext);
     on('btn-tut-skip', 'click', () => {
-      if (confirm('Skip the tutorial and enter the Hall as a Page? (No practice Aura.)'))
+      if (confirm('Skip the tutorial and enter the Hall as an Initiate? (No practice Aura.)'))
         finishTutorial(true);
     });
     on('btn-tut-timer', 'click', () => {
@@ -3844,7 +3844,7 @@
     } else if (kind === 'mult') {
       title = 'Multiplier';
       body =
-        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura only (each scroll still pays its rank Aura: Page +25, Squire +35, Knight +50, …).</p>' +
+        '<p style="margin-bottom:10px;line-height:1.5">The multiplier boosts your <strong class="gold">Day Conquered bonus</strong> Aura only (each scroll still pays its rank Aura: Initiate +25, Squire +35, Knight +50, …).</p>' +
         '<p style="margin-bottom:10px;line-height:1.5">Your streak is <strong class="gold">' +
         streak +
         '</strong> → multiplier <strong class="gold">' +
@@ -3877,7 +3877,7 @@
         '<li>14 days → the Iron · <strong>+1 shield</strong></li>' +
         '<li>30 days → the Unbroken · <strong>+2 shields</strong></li>' +
         '</ul>' +
-        '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">New pages start with 1 shield. Pick honors on the Level tab. Shields do not protect Aura — only the streak.</p>';
+        '<p class="muted" style="margin-top:12px;font-size:0.85rem;line-height:1.45">New initiates start with 1 shield. Pick honors on the Level tab. Shields do not protect Aura — only the streak.</p>';
     } else {
       return;
     }
