@@ -742,9 +742,9 @@
         <div class="card">
           <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
-            <li>Daily quest of 3 Training Bouts (work/rest timers per drill)</li>
-            <li>Levels 1–99 · ranks · streak honors · ball mastery scrolls</li>
-            <li>Initiate → Grandmaster rank scrolls · growing library</li>
+            <li>Do 3 ball drills a day (each has a simple work / rest timer)</li>
+            <li>Earn XP, level up, and unlock new drills</li>
+            <li>One ball · small space · progress saved on this device</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
         </div>
@@ -784,7 +784,7 @@
           <p class="muted" style="margin-top:14px;margin-bottom:8px">Choose your emblem</p>
           <div class="emblem-grid" id="emblem-grid"></div>
         </div>
-        <button type="button" class="btn btn-gold" id="btn-begin">Begin the Quest</button>
+        <button type="button" class="btn btn-gold" id="btn-begin">Let's go</button>
         <p class="muted" style="text-align:center;font-size:0.75rem">Progress is saved on this device · Lifetime access</p>
       </div>
     </section>
@@ -823,21 +823,24 @@
           </div>
           <div style="text-align:right">
             <div class="gold" style="font-family:var(--display);font-weight:700" id="hall-aura">0</div>
-            <div class="muted" style="font-size:0.65rem;text-transform:uppercase">Aura</div>
+            <div class="muted" style="font-size:0.65rem;text-transform:uppercase">XP</div>
           </div>
         </div>
 
         <div class="card" style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <h2 style="font-size:1.1rem;color:var(--gold);margin:0">Today’s Quest</h2>
+            <h2 style="font-size:1.1rem;color:var(--gold);margin:0">Today’s training</h2>
             <span class="tag" id="hall-day-status">0 / 3</span>
           </div>
-          <p class="muted" style="margin-top:2px;font-size:0.85rem;line-height:1.4">
-            Finish <strong class="gold">3 bouts</strong> today. Each bout is one ball drill with a work / rest timer.
+          <p class="gold" id="hall-what-next" style="margin:6px 0 0;font-size:0.95rem;font-weight:600;line-height:1.35">
+            Next: finish drill 1 of 3
+          </p>
+          <p class="muted" id="hall-next-drill" style="margin-top:8px;font-size:0.85rem;line-height:1.4">
+            Drill: —
           </p>
           <div class="bout-track" id="hall-bouts" style="margin-top:12px"></div>
-          <button type="button" class="btn btn-gold" style="margin-top:14px" id="btn-start-bout">Train now</button>
-          <button type="button" class="btn btn-ghost" style="margin-top:8px" id="btn-hall-scrolls">Pick a scroll</button>
+          <button type="button" class="btn btn-gold" style="margin-top:14px" id="btn-start-bout">Start today’s training</button>
+          <button type="button" class="btn btn-ghost" style="margin-top:8px;font-size:0.8rem" id="btn-hall-scrolls">Change drill</button>
         </div>
 
         <div class="card" style="margin-bottom:12px">
@@ -847,65 +850,69 @@
           </div>
           <div class="bar" style="height:12px"><i id="hall-rank-bar" style="width:0%"></i></div>
           <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:0.8rem">
-            <span class="gold" id="hall-rank-aura-meta">0 / 100 Aura</span>
+            <span class="gold" id="hall-rank-aura-meta">0 / 100 XP</span>
             <span class="muted" id="hall-rank-to-go">— to next level</span>
           </div>
         </div>
 
-        <div class="stat-grid" style="margin-bottom:4px">
+        <div class="stat-grid" id="hall-advanced-stats" style="margin-bottom:4px;display:none" aria-hidden="true">
           <button type="button" class="stat stat-tap" data-help="streak" aria-label="Quest streak info">
             <div class="v" id="hall-streak">0</div>
-            <div class="l">Quest streak</div>
+            <div class="l">Streak</div>
           </button>
           <button type="button" class="stat stat-tap" data-help="mult" aria-label="Multiplier info">
             <div class="v" id="hall-mult">1.0×</div>
-            <div class="l">Multiplier</div>
+            <div class="l">Bonus</div>
           </button>
           <button type="button" class="stat stat-tap" data-help="shields" aria-label="Shields info">
             <div class="v" id="hall-shields">0</div>
-            <div class="l">Shields 🛡️</div>
+            <div class="l">Shields</div>
           </button>
         </div>
       </div>
     </section>
 
-    <!-- BOUT -->
+    <!-- BOUT / TRAIN -->
     <section class="screen" id="screen-bout">
       <div class="screen-scroll">
-        <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;margin-bottom:12px" id="btn-bout-back">← Hall</button>
-        <div class="card card-parchment" style="margin-bottom:12px">
+        <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;margin-bottom:12px" id="btn-bout-back">← Home</button>
+
+        <!-- Prep: read the drill -->
+        <div class="card card-parchment" id="bout-prep" style="margin-bottom:12px">
           <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Initiate</span>
           <h2 style="margin-top:8px;font-size:1.35rem" id="bout-drill-title">Drill</h2>
           <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="bout-drill-setup"></p>
           <ol class="steps" id="bout-drill-steps"></ol>
           <div class="counsel" id="bout-counsel"></div>
           <div id="bout-video" class="video-wrap" style="margin-top:14px" aria-label="Drill demonstration"></div>
-          <p class="muted" style="font-size:0.75rem;margin-top:6px">Watch the demo, then train the bout.</p>
+          <p class="muted" style="font-size:0.75rem;margin-top:6px">Read the steps (and watch the demo if there is one), then start the timer.</p>
         </div>
-        <div class="card" style="text-align:center">
+
+        <!-- Train: timer focus -->
+        <div class="card" id="bout-timer-card" style="text-align:center">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px">
-            <p class="muted" style="margin:0;text-align:left">Drill timer · work &amp; rest</p>
+            <p class="muted" style="margin:0;text-align:left" id="bout-timer-heading">Timer</p>
             <button type="button" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:0.7rem" id="btn-sound-toggle" aria-label="Toggle timer sounds">🔊 Sound on</button>
           </div>
           <div id="bout-phase-badge" class="phase-badge work">Work</div>
           <div class="timer phase-work" id="bout-timer">0:45</div>
           <p class="muted" style="margin-top:6px" id="bout-round-meta">Round 1 of 8</p>
           <div class="bar" style="margin-top:10px"><i id="bout-progress-bar" style="width:0%"></i></div>
-          <p class="muted" style="margin-top:8px;font-size:0.8rem" id="bout-timer-hint">Stand in your 5×5 · one ball only</p>
+          <p class="muted" style="margin-top:8px;font-size:0.8rem" id="bout-timer-hint">One ball · about a 5×5 space</p>
           <div class="btn-row" style="margin-top:16px">
-            <button type="button" class="btn btn-royal" id="btn-timer-toggle">Begin</button>
+            <button type="button" class="btn btn-royal" id="btn-timer-toggle">Start timer</button>
             <button type="button" class="btn btn-ghost" id="btn-timer-reset">Reset</button>
           </div>
-          <button type="button" class="btn btn-gold" style="margin-top:10px" id="btn-complete-bout" disabled>Mark Bout Complete</button>
+          <button type="button" class="btn btn-gold" style="margin-top:10px" id="btn-complete-bout" disabled>I finished this drill</button>
         </div>
       </div>
     </section>
 
-    <!-- SCROLLS -->
+    <!-- SCROLLS / DRILLS -->
     <section class="screen" id="screen-scrolls">
       <div class="screen-scroll">
-        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:4px">📜 Scrolls</h1>
-        <p class="muted" style="margin-bottom:12px">Tap a rank to expand its scrolls. Completed scrolls can be replayed for more Aura.</p>
+        <h1 style="font-size:1.4rem;color:var(--gold-bright);margin-bottom:4px">📜 Drills</h1>
+        <p class="muted" style="margin-bottom:12px">Tap a rank to see its drills. Finished drills can be replayed for more XP (Aura).</p>
         <div id="scroll-list"></div>
       </div>
     </section>
@@ -984,9 +991,9 @@
     </section>
 
     <nav class="nav" id="main-nav">
-      <button type="button" data-nav="hall" class="active"><span class="ico">🏰</span>Hall</button>
-      <button type="button" data-nav="bout"><span class="ico">⚔️</span>Bout</button>
-      <button type="button" data-nav="scrolls"><span class="ico">📜</span>Scrolls</button>
+      <button type="button" data-nav="hall" class="active"><span class="ico">🏰</span>Home</button>
+      <button type="button" data-nav="bout"><span class="ico">⚔️</span>Train</button>
+      <button type="button" data-nav="scrolls"><span class="ico">📜</span>Drills</button>
       <button type="button" data-nav="rank"><span class="ico">👑</span>Level</button>
       <button type="button" data-nav="arena"><span class="ico">🏟️</span>Arena</button>
     </nav>
@@ -2859,6 +2866,28 @@
       .trim();
   }
 
+  function pathUnlocked(path, rank) {
+    if (!path) return false;
+    const need = Number(path.unlockRank) || 1;
+    return rank >= need;
+  }
+
+  /** Preferred next drill: keep player choice if still valid, else auto-pick. */
+  function resolveNextDrill() {
+    const rank = rankFromAura(state.aura);
+    if (activeDrill && activeDrill.path && activeDrill.drill) {
+      const path =
+        RANK_SCROLLS.find((p) => p.id === activeDrill.path.id) || activeDrill.path;
+      const stillThere = (path.scrolls || []).some(
+        (d) => d.id === activeDrill.drill.id
+      );
+      if (pathUnlocked(path, rank) && stillThere) {
+        return { path, drill: activeDrill.drill };
+      }
+    }
+    return pickDrill();
+  }
+
   function renderHall() {
     ensureDayBoundary();
     const rank = rankFromAura(state.aura);
@@ -2869,11 +2898,22 @@
     document.getElementById('hall-rankline').textContent =
       'Level ' + rank + ' · ' + rankShort(rank);
     document.getElementById('hall-aura').textContent = state.aura.toLocaleString();
+
+    const advanced = document.getElementById('hall-advanced-stats');
+    const showAdvanced =
+      (state.streak || 0) > 0 ||
+      (state.totalBouts || 0) >= 3 ||
+      (state.shields || 0) > 0;
+    if (advanced) {
+      advanced.style.display = showAdvanced ? '' : 'none';
+      advanced.setAttribute('aria-hidden', showAdvanced ? 'false' : 'true');
+    }
     document.getElementById('hall-streak').textContent = String(state.streak);
-    document.getElementById('hall-mult').textContent = streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
+    document.getElementById('hall-mult').textContent =
+      streakMultiplier(state.streak).toFixed(2).replace(/\.00$/, '.0') + '×';
     document.getElementById('hall-shields').textContent = String(state.shields);
 
-    // Level progress (simple)
+    // Level progress
     const bar = document.getElementById('hall-rank-bar');
     const nextLabel = document.getElementById('hall-rank-next-label');
     const auraMeta = document.getElementById('hall-rank-aura-meta');
@@ -2881,7 +2921,7 @@
     if (prog.maxed) {
       bar.style.width = '100%';
       nextLabel.textContent = 'Max level';
-      auraMeta.textContent = state.aura.toLocaleString() + ' Aura';
+      auraMeta.textContent = state.aura.toLocaleString() + ' XP';
       toGo.textContent = 'Peak';
     } else {
       const need = Math.max(0, prog.next - state.aura);
@@ -2892,11 +2932,11 @@
         state.aura.toLocaleString() +
         ' / ' +
         prog.next.toLocaleString() +
-        ' Aura';
+        ' XP';
       toGo.textContent = need.toLocaleString() + ' to go';
     }
 
-    // Today’s quest — the main loop
+    // Today’s training — main loop
     const conquered = state.boutsToday >= 3;
     const dayStatus = document.getElementById('hall-day-status');
     dayStatus.textContent = conquered
@@ -2911,7 +2951,29 @@
       )
       .join('');
 
-    const auraPrev = previewAura();
+    const next = resolveNextDrill();
+    activeDrill = next;
+    const what = document.getElementById('hall-what-next');
+    const drillLine = document.getElementById('hall-next-drill');
+    if (what) {
+      if (conquered) {
+        what.textContent = 'Day done — come back tomorrow (or do extra practice)';
+      } else {
+        what.textContent =
+          'Next: finish drill ' + (state.boutsToday + 1) + ' of 3';
+      }
+    }
+    if (drillLine && next && next.drill) {
+      drillLine.innerHTML =
+        'Drill: <strong class="gold">' +
+        next.drill.title +
+        '</strong>' +
+        (next.path && next.path.title
+          ? ' <span class="muted">· ' + next.path.title + '</span>'
+          : '');
+    }
+
+    const auraPrev = previewAura(next && next.path ? next.path.id : undefined);
     let auraHint = document.getElementById('hall-aura-hint');
     if (!auraHint) {
       auraHint = document.createElement('p');
@@ -2922,30 +2984,27 @@
     }
     if (conquered) {
       auraHint.innerHTML =
-        'Day conquered. Extra bouts still earn <span class="gold">+' +
+        'Extra drills still earn <span class="gold">+' +
         auraPrev.perBout +
-        ' Aura</span> each.';
+        ' XP</span> each.';
     } else {
       auraHint.innerHTML =
-        'Each bout: <span class="gold">+' +
+        'This drill: about <span class="gold">+' +
         auraPrev.perBout +
-        ' Aura</span>' +
+        ' XP</span>' +
         (state.boutsToday === 2
-          ? ' · this one also adds day bonus <span class="gold">+' +
-            auraPrev.dayBonus +
-            '</span>' +
-            (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '×)' : '')
-          : ' · after 3 bouts: day bonus <span class="gold">+' +
-            auraPrev.dayBonus +
-            '</span>');
+          ? ' · finishing 3 today also adds a day bonus'
+          : ' · goal: 3 drills today');
     }
 
     const btn = document.getElementById('btn-start-bout');
     btn.disabled = false;
     if (conquered) {
       btn.textContent = 'Extra practice';
+    } else if (state.boutsToday === 0) {
+      btn.textContent = "Start today's training";
     } else {
-      btn.textContent = 'Train now · bout ' + (state.boutsToday + 1) + ' of 3';
+      btn.textContent = 'Continue training · ' + (state.boutsToday + 1) + ' of 3';
     }
   }
 
@@ -3024,19 +3083,37 @@
     );
   }
 
+  function setBoutMode(mode) {
+    // prep | train | done
+    const prep = document.getElementById('bout-prep');
+    const train = document.getElementById('bout-timer-card');
+    if (!prep || !train) return;
+    if (mode === 'prep') {
+      prep.style.display = '';
+      train.style.opacity = '1';
+    } else if (mode === 'train') {
+      prep.style.display = 'none';
+      train.style.opacity = '1';
+    } else {
+      // done: show short prep summary optional — keep timer card focused
+      prep.style.display = 'none';
+      train.style.opacity = '1';
+    }
+  }
+
   function renderBout() {
     updateSoundToggleUI();
-    if (!activeDrill) {
-      const picked = pickDrill();
-      activeDrill = picked;
-    }
+    activeDrill = resolveNextDrill();
     const { path, drill } = activeDrill;
     document.getElementById('bout-path-tag').textContent = path.title;
     document.getElementById('bout-drill-title').textContent = drill.title;
     document.getElementById('bout-drill-setup').textContent = drill.setup;
     document.getElementById('bout-video').innerHTML = renderVideoHtml(drill.video);
-    document.getElementById('bout-drill-steps').innerHTML = drill.steps.map((s) => '<li>' + s + '</li>').join('');
-    document.getElementById('bout-counsel').textContent = "Knight’s counsel: " + drill.counsel;
+    document.getElementById('bout-drill-steps').innerHTML = drill.steps
+      .map((s) => '<li>' + s + '</li>')
+      .join('');
+    document.getElementById('bout-counsel').textContent =
+      'Tip: ' + drill.counsel;
 
     const pathId = path.id;
     const scrollAura = getScrollAura(pathId);
@@ -3049,35 +3126,30 @@
         'margin-top:12px;padding:8px 10px;border-radius:8px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.35);font-size:0.85rem;font-weight:600;color:var(--royal)';
       document.getElementById('bout-counsel').insertAdjacentElement('afterend', auraEl);
     }
-    const isThird = state.boutsToday === 2; // this bout will be #3
+    const isThird = state.boutsToday === 2;
     if (auraPrev.already) {
       auraEl.innerHTML =
-        'This scroll: <strong>+' +
+        'Finish for about <strong>+' +
         scrollAura +
-        ' Aura</strong> on complete (quest done — still counts)';
+        ' XP</strong> (day goal already done)';
     } else if (isThird) {
       auraEl.innerHTML =
-        'This scroll: <strong>+' +
+        'Finish for about <strong>+' +
         scrollAura +
-        ' Aura</strong> + Day Conquered <strong>+' +
-        auraPrev.dayBonus +
-        '</strong>' +
-        (auraPrev.mult > 1 ? ' (' + auraPrev.mult + '× streak)' : '') +
-        ' = <strong>+' +
-        (scrollAura + auraPrev.dayBonus) +
-        ' Aura</strong>';
+        ' XP</strong> plus a day bonus — this is drill 3 of 3';
     } else {
       const left = Math.max(0, 3 - state.boutsToday - 1);
       auraEl.innerHTML =
-        'This scroll: <strong>+' +
+        'Finish for about <strong>+' +
         scrollAura +
-        ' Aura</strong> on complete' +
+        ' XP</strong>' +
         (left > 0
-          ? ' · then ' + left + ' more bout' + (left === 1 ? '' : 's') + ' for day bonus +' + auraPrev.dayBonus
+          ? ' · then ' + left + ' more drill' + (left === 1 ? '' : 's') + ' today'
           : '');
     }
 
     resetTimer();
+    setBoutMode(timer.started || timer.running || timer.finished ? (timer.finished ? 'done' : 'train') : 'prep');
   }
 
   function formatTime(sec) {
@@ -3099,13 +3171,14 @@
     if (timer.finished || !seg) {
       el.textContent = '0:00';
       el.className = 'timer done';
-      badge.textContent = 'Complete';
+      badge.textContent = 'Done';
       badge.className = 'phase-badge done';
-      meta.textContent = 'All intervals finished';
+      meta.textContent = 'Timer finished';
       bar.style.width = '100%';
       complete.disabled = false;
-      toggle.textContent = 'Finished';
-      hint.textContent = 'The bout is complete — claim your honor';
+      toggle.textContent = 'Done';
+      hint.textContent = 'Nice work — tap below to save your progress';
+      setBoutMode('done');
       return;
     }
 
@@ -3114,6 +3187,8 @@
     el.className = 'timer phase-' + (isRest ? 'rest' : 'work');
     badge.textContent = (seg.label || (isRest ? 'Rest' : 'Work')).toUpperCase();
     badge.className = 'phase-badge ' + (isRest ? 'rest' : 'work');
+    if (timer.running || timer.started) setBoutMode('train');
+    else setBoutMode('prep');
 
     if (seg.round && seg.rounds) {
       meta.textContent =
@@ -3137,7 +3212,7 @@
     bar.style.width = progressPct().toFixed(1) + '%';
     complete.disabled = true;
 
-    if (!timer.started) toggle.textContent = 'Begin';
+    if (!timer.started) toggle.textContent = 'Start timer';
     else if (timer.running) toggle.textContent = 'Pause';
     else toggle.textContent = 'Resume';
 
@@ -4112,7 +4187,7 @@
       const btn = e.target.closest('[data-nav]');
       if (!btn) return;
       if (btn.dataset.nav === 'bout') {
-        if (!activeDrill) activeDrill = pickDrill();
+        activeDrill = resolveNextDrill();
         showScreen('bout');
       } else {
         showScreen(btn.dataset.nav);
@@ -4120,7 +4195,7 @@
     });
 
     on('btn-start-bout', 'click', () => {
-      activeDrill = pickDrill();
+      activeDrill = resolveNextDrill();
       resetTimer();
       showScreen('bout');
     });
@@ -4133,12 +4208,15 @@
         stopTimerInterval();
         updateTimerUI();
       } else {
+        setBoutMode('train');
         startTimerInterval();
       }
     });
     on('btn-timer-reset', 'click', () => {
-      if (timer.running && !confirm('Reset the bout timer?')) return;
+      if (timer.running && !confirm('Reset the timer?')) return;
       resetTimer();
+      setBoutMode('prep');
+      updateTimerUI();
     });
     on('btn-sound-toggle', 'click', () => {
       setSoundEnabled(!soundEnabled);
