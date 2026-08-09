@@ -10,6 +10,7 @@ const {
   redeemAccessCode,
 } = require("./lib/unlock");
 const leaderboard = require("./lib/leaderboard");
+const accounts = require("./lib/accounts");
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -226,6 +227,70 @@ app.post("/api/leaderboard/submit", (req, res) => {
   }
 });
 
+// —— Cross-device accounts (username + PIN) ——
+app.post("/api/auth/register", (req, res) => {
+  try {
+    const result = accounts.register({
+      username: req.body?.username,
+      pin: req.body?.pin,
+      character: req.body?.character,
+      unlockToken: req.body?.unlockToken,
+    });
+    res.status(201).json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({
+      error: err.message || "Could not create account",
+    });
+  }
+});
+
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const result = accounts.login({
+      username: req.body?.username,
+      pin: req.body?.pin,
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({
+      error: err.message || "Sign-in failed",
+    });
+  }
+});
+
+app.get("/api/character", (req, res) => {
+  try {
+    const auth = accounts.authFromRequest(req);
+    if (!auth.ok) {
+      return res.status(401).json({ error: auth.error || "Not signed in" });
+    }
+    const result = accounts.getCharacter(auth.usernameKey);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({
+      error: err.message || "Could not load character",
+    });
+  }
+});
+
+app.put("/api/character", (req, res) => {
+  try {
+    const auth = accounts.authFromRequest(req);
+    if (!auth.ok) {
+      return res.status(401).json({ error: auth.error || "Not signed in" });
+    }
+    const result = accounts.saveCharacter(auth.usernameKey, {
+      character: req.body?.character,
+      unlockToken: req.body?.unlockToken,
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({
+      error: err.message || "Could not save character",
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Order of the Ball API + app at http://localhost:${PORT}`);
   console.log(`PUBLIC_APP_URL=${PUBLIC_APP_URL}`);
@@ -243,4 +308,9 @@ app.listen(PORT, () => {
     );
   }
   console.log(`Leaderboard data → ${leaderboard.DATA_PATH}`);
+  if (!process.env.SESSION_SECRET && !process.env.UNLOCK_SECRET) {
+    console.warn(
+      "SESSION_SECRET not set — account sessions use a weak fallback. Set SESSION_SECRET in production."
+    );
+  }
 });

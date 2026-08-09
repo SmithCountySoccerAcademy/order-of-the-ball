@@ -711,6 +711,31 @@
       color: rgba(28,20,8,0.55);
     }
 
+    /* Bout layout: timer first while training so demo stays in view under it */
+    #screen-bout .screen-scroll {
+      display: flex;
+      flex-direction: column;
+    }
+    #bout-prep { order: 2; }
+    #bout-demo-card { order: 3; }
+    #bout-timer-card { order: 4; }
+    #btn-bout-back { order: 1; align-self: flex-start; }
+    #screen-bout.mode-train #bout-timer-card,
+    #screen-bout.mode-done #bout-timer-card { order: 2; }
+    #screen-bout.mode-train #bout-demo-card,
+    #screen-bout.mode-done #bout-demo-card { order: 3; }
+    #screen-bout.mode-train #bout-prep,
+    #screen-bout.mode-done #bout-prep { order: 4; }
+    #bout-demo-card .video-wrap { margin-top: 8px; }
+    #bout-steps-live {
+      margin-top: 10px;
+      text-align: left;
+      display: none;
+    }
+    #bout-steps-live.open { display: block; }
+    #bout-steps-live ol { margin: 0; padding-left: 1.1rem; }
+    #bout-steps-live li { margin-bottom: 4px; font-size: 0.85rem; color: rgba(243,230,200,0.85); }
+
     .hero-title {
       font-size: clamp(1.6rem, 6vw, 2rem);
       text-align: center;
@@ -737,19 +762,23 @@
             <img class="brand-logo" src="assets/logo.jpg" alt="Order of the Ball crest" width="112" height="112" />
           </div>
           <h1 class="hero-title" style="margin-top:12px">Order of the Ball</h1>
-          <p class="subtitle">Ball mastery for kids · One ball · 5×5 space<br/>One-time purchase · Lifetime access on this device</p>
+          <p class="subtitle">Ball mastery for kids · One ball · 5×5 space<br/>One-time purchase · Play on any device with a free account</p>
         </div>
         <div class="card">
           <p style="font-weight:600;color:var(--gold-bright);margin-bottom:8px">What you unlock</p>
           <ul class="steps" style="margin:0;padding-left:1.1rem;color:rgba(243,230,200,0.85);font-size:0.9rem">
             <li>Do 3 ball drills a day (each has a simple work / rest timer)</li>
             <li>Earn XP, level up, and unlock new drills</li>
-            <li>One ball · small space · progress saved on this device</li>
+            <li>Save progress to the cloud with username + PIN</li>
             <li>Text-first drills now · video demos rolling out later</li>
           </ul>
         </div>
         <button type="button" class="btn btn-gold" id="btn-buy">Unlock lifetime access</button>
         <p class="muted" style="text-align:center;font-size:0.8rem" id="paywall-status"></p>
+        <div class="card" style="padding:12px">
+          <p class="muted" style="margin-bottom:8px;font-size:0.8rem">Already playing on another device?</p>
+          <button type="button" class="btn btn-royal" id="btn-paywall-signin">Sign in with username + PIN</button>
+        </div>
         <div class="card" style="padding:12px">
           <p class="muted" style="margin-bottom:8px;font-size:0.8rem">Have a family / beta access code?</p>
           <input class="field" id="input-access-code" placeholder="Access code" autocomplete="off" />
@@ -785,7 +814,7 @@
           <div class="emblem-grid" id="emblem-grid"></div>
         </div>
         <button type="button" class="btn btn-gold" id="btn-begin">Let's go</button>
-        <p class="muted" style="text-align:center;font-size:0.75rem">Progress is saved on this device · Lifetime access</p>
+        <p class="muted" style="text-align:center;font-size:0.75rem">After you start, create a free account to play on any device</p>
       </div>
     </section>
 
@@ -869,6 +898,14 @@
             <div class="l">Shields</div>
           </button>
         </div>
+
+        <div class="card" id="hall-account-card" style="margin-top:12px">
+          <h3 style="font-size:0.95rem;color:var(--gold);margin:0 0 8px">Play on any device</h3>
+          <p class="muted" style="font-size:0.8rem;line-height:1.4;margin:0" id="hall-account-status">
+            Create a free username + PIN so your knight travels with you.
+          </p>
+          <div id="hall-account-actions" style="margin-top:12px"></div>
+        </div>
       </div>
     </section>
 
@@ -877,19 +914,28 @@
       <div class="screen-scroll">
         <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 12px;margin-bottom:12px" id="btn-bout-back">← Home</button>
 
-        <!-- Prep: read the drill -->
+        <!-- Prep: read the drill (hidden while the timer is running) -->
         <div class="card card-parchment" id="bout-prep" style="margin-bottom:12px">
           <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="bout-path-tag">Initiate</span>
           <h2 style="margin-top:8px;font-size:1.35rem" id="bout-drill-title">Drill</h2>
           <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="bout-drill-setup"></p>
           <ol class="steps" id="bout-drill-steps"></ol>
           <div class="counsel" id="bout-counsel"></div>
-          <div id="bout-video" class="video-wrap" style="margin-top:14px" aria-label="Drill demonstration"></div>
-          <p class="muted" style="font-size:0.75rem;margin-top:6px">Read the steps (and watch the demo if there is one), then start the timer.</p>
+          <p class="muted" style="font-size:0.75rem;margin-top:10px">Read the steps, peek at the demo below, then start the timer. The demo stays up while you train.</p>
+        </div>
+
+        <!-- Demo: stays visible during prep AND while working -->
+        <div class="card" id="bout-demo-card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <p class="muted" style="margin:0;font-size:0.8rem;text-align:left">Demonstration</p>
+            <button type="button" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:0.7rem;display:none" id="btn-toggle-bout-steps" aria-expanded="false">Show steps</button>
+          </div>
+          <div id="bout-video" class="video-wrap" style="margin-top:8px" aria-label="Drill demonstration"></div>
+          <div id="bout-steps-live" aria-live="polite"></div>
         </div>
 
         <!-- Train: timer focus -->
-        <div class="card" id="bout-timer-card" style="text-align:center">
+        <div class="card" id="bout-timer-card" style="text-align:center;margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px">
             <p class="muted" style="margin:0;text-align:left" id="bout-timer-heading">Timer</p>
             <button type="button" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:0.7rem" id="btn-sound-toggle" aria-label="Toggle timer sounds">🔊 Sound on</button>
@@ -952,10 +998,12 @@
         </div>
         <div class="card" style="margin-top:12px">
           <h3 style="font-size:0.95rem;color:var(--gold);margin-bottom:8px">🛡️ Keep your progress</h3>
-          <p class="muted" style="font-size:0.8rem;margin-bottom:10px">
-            Progress is saved on <strong>this browser / device</strong>. Use the same link every time.
-            Copy a backup scroll if you change phones.
+          <p class="muted" style="font-size:0.8rem;margin-bottom:10px" id="rank-account-blurb">
+            Progress saves on this device. Create a free <strong class="gold">username + PIN</strong> on Home to play on any phone or computer.
           </p>
+          <p class="muted" style="font-size:0.8rem;margin-bottom:10px" id="rank-account-status"></p>
+          <div id="rank-account-actions" style="margin-bottom:12px"></div>
+          <p class="muted" style="font-size:0.75rem;margin-bottom:8px">Optional offline backup:</p>
           <button type="button" class="btn btn-royal" id="btn-export-save">Copy backup scroll</button>
           <button type="button" class="btn btn-ghost" style="margin-top:8px" id="btn-import-save">Restore from scroll</button>
           <p class="muted" style="font-size:0.72rem;margin-top:8px" id="save-status"></p>
@@ -1046,6 +1094,8 @@
 
   const STORAGE_KEY = 'orderOfTheBall_v1';
   const UNLOCK_KEY = 'orderOfTheBall_unlock_v1';
+  const SESSION_KEY = 'orderOfTheBall_session_v1';
+  const ACCOUNT_USER_KEY = 'orderOfTheBall_accountUser_v1';
   /**
    * PROGRESSION OWNERSHIP (youth development first)
    * ----------------------------------------------
@@ -1061,6 +1111,11 @@
   const AURA_DAY_BONUS_BASE = 50; // × streak mult on 3rd bout of the day
   // Fallback if path missing (should not happen)
   const AURA_PER_BOUT_DEFAULT = 35;
+
+  let cloudSaveTimer = null;
+  let cloudSaveInFlight = false;
+  let lastCloudSaveAt = null;
+  let lastCloudError = '';
 
   function apiUrl(path) {
     const base = (CONFIG.API_BASE || '').replace(/\/$/, '');
@@ -1083,6 +1138,215 @@
     return Boolean(getUnlockToken());
   }
 
+  function getSessionToken() {
+    try {
+      return localStorage.getItem(SESSION_KEY) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function setSessionToken(token) {
+    try {
+      if (token) localStorage.setItem(SESSION_KEY, token);
+      else localStorage.removeItem(SESSION_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function getAccountUsername() {
+    try {
+      return localStorage.getItem(ACCOUNT_USER_KEY) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function setAccountUsername(username) {
+    try {
+      if (username) localStorage.setItem(ACCOUNT_USER_KEY, username);
+      else localStorage.removeItem(ACCOUNT_USER_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function isSignedIn() {
+    return Boolean(getSessionToken());
+  }
+
+  function clearAccountSession() {
+    setSessionToken('');
+    setAccountUsername('');
+    lastCloudSaveAt = null;
+    lastCloudError = '';
+  }
+
+  function applyCharacterFromCloud(character) {
+    if (!character || typeof character !== 'object' || !character.name) return false;
+    const merged = migrateState(Object.assign(defaultState(), character));
+    if (Object.prototype.hasOwnProperty.call(character, 'shields')) {
+      merged.shields = character.shields;
+    }
+    state = merged;
+    return true;
+  }
+
+  async function authApi(path, body) {
+    const res = await fetch(apiUrl(path), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (e) {
+      data = {};
+    }
+    if (!res.ok) {
+      throw new Error(data.error || 'Request failed');
+    }
+    return data;
+  }
+
+  async function cloudPull() {
+    const token = getSessionToken();
+    if (!token) return null;
+    const res = await fetch(apiUrl('/api/character'), {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (e) {
+      data = {};
+    }
+    if (res.status === 401) {
+      clearAccountSession();
+      throw new Error(data.error || 'Session expired — sign in again');
+    }
+    if (!res.ok) {
+      throw new Error(data.error || 'Could not load cloud save');
+    }
+    return data;
+  }
+
+  async function pushCloudSave(options) {
+    const silent = options && options.silent;
+    const token = getSessionToken();
+    if (!token || !state || !state.name) return false;
+    if (cloudSaveInFlight) {
+      scheduleCloudSave();
+      return false;
+    }
+    cloudSaveInFlight = true;
+    try {
+      const res = await fetch(apiUrl('/api/character'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        body: JSON.stringify({
+          character: state,
+          unlockToken: getUnlockToken() || null,
+        }),
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = {};
+      }
+      if (res.status === 401) {
+        clearAccountSession();
+        lastCloudError = data.error || 'Session expired';
+        if (!silent) toast(lastCloudError + ' — sign in again');
+        renderAccountPanels();
+        return false;
+      }
+      if (!res.ok) {
+        lastCloudError = data.error || 'Cloud save failed';
+        if (!silent) toast(lastCloudError);
+        return false;
+      }
+      lastCloudSaveAt = data.updatedAt || new Date().toISOString();
+      lastCloudError = '';
+      if (data.user && data.user.username) setAccountUsername(data.user.username);
+      renderAccountPanels();
+      return true;
+    } catch (err) {
+      lastCloudError = (err && err.message) || 'Cloud save failed';
+      if (!silent) toast(lastCloudError);
+      return false;
+    } finally {
+      cloudSaveInFlight = false;
+    }
+  }
+
+  function scheduleCloudSave() {
+    if (!getSessionToken() || !state || !state.name) return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(function () {
+      pushCloudSave({ silent: true });
+    }, 900);
+  }
+
+  async function applyAuthResult(data, options) {
+    const opts = options || {};
+    if (!data || !data.token) throw new Error('No session returned');
+    setSessionToken(data.token);
+    if (data.user && data.user.username) setAccountUsername(data.user.username);
+
+    if (data.unlockToken) {
+      setUnlockToken(data.unlockToken);
+      try {
+        idbSet(UNLOCK_KEY, data.unlockToken);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    const cloudChar = data.character;
+    if (cloudChar && cloudChar.name) {
+      // Prefer cloud character when signing in on a new device
+      applyCharacterFromCloud(cloudChar);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        /* ignore */
+      }
+      idbSet(STORAGE_KEY, state);
+      lastCloudSaveAt = (data.user && data.user.updatedAt) || new Date().toISOString();
+    } else if (state && state.name && opts.pushLocal) {
+      await pushCloudSave({ silent: true });
+    }
+
+    lastCloudError = '';
+  }
+
+  async function registerAccount(username, pin) {
+    const data = await authApi('/api/auth/register', {
+      username: username,
+      pin: pin,
+      character: state && state.name ? state : null,
+      unlockToken: getUnlockToken() || null,
+    });
+    await applyAuthResult(data, { pushLocal: false });
+    return data;
+  }
+
+  async function loginAccount(username, pin) {
+    const data = await authApi('/api/auth/login', {
+      username: username,
+      pin: pin,
+    });
+    await applyAuthResult(data, { pushLocal: true });
+    return data;
+  }
+
   async function enterApp() {
     state = await loadWithFallback();
     // Recover unlock from IndexedDB if localStorage lost it
@@ -1090,6 +1354,42 @@
       const tok = await idbGet(UNLOCK_KEY);
       if (tok && typeof tok === 'string') setUnlockToken(tok);
     }
+
+    // Signed in: pull cloud character (and unlock) so any device stays in sync
+    if (getSessionToken()) {
+      try {
+        const cloud = await cloudPull();
+        if (cloud) {
+          if (cloud.unlockToken && !getUnlockToken()) {
+            setUnlockToken(cloud.unlockToken);
+            try {
+              idbSet(UNLOCK_KEY, cloud.unlockToken);
+            } catch (e) {
+              /* ignore */
+            }
+          } else if (cloud.unlockToken) {
+            // Keep local unlock; still refresh idb backup
+            try {
+              idbSet(UNLOCK_KEY, getUnlockToken());
+            } catch (e) {
+              /* ignore */
+            }
+          }
+          if (cloud.user && cloud.user.username) setAccountUsername(cloud.user.username);
+          if (cloud.character && cloud.character.name) {
+            applyCharacterFromCloud(cloud.character);
+            lastCloudSaveAt = cloud.updatedAt || null;
+          } else if (state && state.name) {
+            // Account exists but no cloud character yet — upload local
+            scheduleCloudSave();
+          }
+        }
+      } catch (err) {
+        lastCloudError = (err && err.message) || 'Cloud sync unavailable';
+        console.warn('Cloud pull failed', err);
+      }
+    }
+
     if (state && state.name) {
       // Existing saves from before tutorial: don't force re-run
       if (state.tutorialDone !== true) {
@@ -1098,7 +1398,7 @@
         }
       }
       ensureDayBoundary();
-      save(); // re-mirror to both stores
+      save(); // re-mirror to both stores (+ cloud if signed in)
       if (!state.tutorialDone) {
         document.getElementById('main-nav').classList.remove('visible');
         startTutorial();
@@ -2245,6 +2545,8 @@
     } catch (e) {
       /* ignore */
     }
+    // Debounced cloud mirror when signed in
+    scheduleCloudSave();
   }
 
   function exportSaveScroll() {
@@ -2997,6 +3299,8 @@
           : ' · goal: 3 drills today');
     }
 
+    renderAccountPanels();
+
     const btn = document.getElementById('btn-start-bout');
     btn.disabled = false;
     if (conquered) {
@@ -3006,6 +3310,230 @@
     } else {
       btn.textContent = 'Continue training · ' + (state.boutsToday + 1) + ' of 3';
     }
+  }
+
+  function formatCloudTime(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function accountStatusHtml() {
+    if (!isSignedIn()) {
+      return 'Create a free username + PIN so your knight travels with you.';
+    }
+    const user = getAccountUsername() || 'knight';
+    let line = 'Signed in as <strong class="gold">' + escapeHtml(user) + '</strong>.';
+    if (lastCloudSaveAt) {
+      const t = formatCloudTime(lastCloudSaveAt);
+      if (t) line += ' Cloud save: ' + escapeHtml(t) + '.';
+    } else {
+      line += ' Progress syncs when you train.';
+    }
+    if (lastCloudError) {
+      line +=
+        ' <span style="color:#f0a0a0">' + escapeHtml(lastCloudError) + '</span>';
+    }
+    return line;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function fillAccountActions(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (isSignedIn()) {
+      el.innerHTML =
+        '<button type="button" class="btn btn-royal" id="' +
+        containerId +
+        '-sync">Save to cloud now</button>' +
+        '<button type="button" class="btn btn-ghost" style="margin-top:8px" id="' +
+        containerId +
+        '-out">Sign out</button>';
+      const syncBtn = document.getElementById(containerId + '-sync');
+      const outBtn = document.getElementById(containerId + '-out');
+      if (syncBtn) {
+        syncBtn.onclick = async function () {
+          if (!state || !state.name) {
+            toast('Create a profile first.');
+            return;
+          }
+          syncBtn.disabled = true;
+          const ok = await pushCloudSave({ silent: false });
+          syncBtn.disabled = false;
+          if (ok) toast('Saved to the cloud.');
+        };
+      }
+      if (outBtn) {
+        outBtn.onclick = function () {
+          if (
+            !confirm(
+              'Sign out on this device? Your progress stays here and in the cloud. Sign in again on another device with the same username + PIN.'
+            )
+          ) {
+            return;
+          }
+          clearAccountSession();
+          toast('Signed out on this device.');
+          renderAccountPanels();
+        };
+      }
+      return;
+    }
+    el.innerHTML =
+      '<button type="button" class="btn btn-gold" id="' +
+      containerId +
+      '-create">Create account</button>' +
+      '<button type="button" class="btn btn-royal" style="margin-top:8px" id="' +
+      containerId +
+      '-in">Sign in</button>';
+    const createBtn = document.getElementById(containerId + '-create');
+    const inBtn = document.getElementById(containerId + '-in');
+    if (createBtn) createBtn.onclick = function () {
+      openAuthModal('register');
+    };
+    if (inBtn) inBtn.onclick = function () {
+      openAuthModal('login');
+    };
+  }
+
+  function renderAccountPanels() {
+    const hallStatus = document.getElementById('hall-account-status');
+    if (hallStatus) hallStatus.innerHTML = accountStatusHtml();
+    fillAccountActions('hall-account-actions');
+
+    const rankStatus = document.getElementById('rank-account-status');
+    const rankBlurb = document.getElementById('rank-account-blurb');
+    if (rankStatus) {
+      if (isSignedIn()) {
+        rankStatus.innerHTML = accountStatusHtml();
+        if (rankBlurb) rankBlurb.style.display = 'none';
+      } else {
+        rankStatus.textContent = '';
+        if (rankBlurb) rankBlurb.style.display = '';
+      }
+    }
+    fillAccountActions('rank-account-actions');
+  }
+
+  function openAuthModal(mode) {
+    const isRegister = mode === 'register';
+    const title = isRegister ? 'Create account' : 'Sign in';
+    const blurb = isRegister
+      ? 'Pick a username and a 4–6 digit PIN. You’ll use these on any device.'
+      : 'Enter the username and PIN from your other device.';
+    openModal(
+      '<h2 style="color:var(--gold-bright);margin-bottom:8px">' +
+        title +
+        '</h2>' +
+        '<p class="muted" style="font-size:0.85rem;margin-bottom:14px;line-height:1.4">' +
+        blurb +
+        '</p>' +
+        '<label class="muted" for="auth-username" style="display:block;margin-bottom:6px;font-size:0.8rem">Username</label>' +
+        '<input class="field" id="auth-username" maxlength="20" autocomplete="username" placeholder="letters, numbers, _" />' +
+        '<label class="muted" for="auth-pin" style="display:block;margin:12px 0 6px;font-size:0.8rem">PIN (4–6 digits)</label>' +
+        '<input class="field" id="auth-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="' +
+        (isRegister ? 'new-password' : 'current-password') +
+        '" placeholder="••••" />' +
+        (isRegister
+          ? '<label class="muted" for="auth-pin2" style="display:block;margin:12px 0 6px;font-size:0.8rem">Confirm PIN</label>' +
+            '<input class="field" id="auth-pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="••••" />'
+          : '') +
+        '<p class="muted" style="font-size:0.75rem;margin-top:12px;line-height:1.4" id="auth-error"></p>' +
+        '<button type="button" class="btn btn-gold" style="margin-top:10px" id="auth-submit">' +
+        (isRegister ? 'Create &amp; save' : 'Sign in') +
+        '</button>' +
+        '<button type="button" class="btn btn-ghost" style="margin-top:8px" id="auth-cancel">Cancel</button>'
+    );
+
+    const errEl = document.getElementById('auth-error');
+    const submit = document.getElementById('auth-submit');
+    document.getElementById('auth-cancel').onclick = closeModal;
+
+    const run = async function () {
+      const username = (document.getElementById('auth-username').value || '').trim();
+      const pin = (document.getElementById('auth-pin').value || '').trim();
+      const pin2 = isRegister
+        ? (document.getElementById('auth-pin2').value || '').trim()
+        : pin;
+      if (errEl) errEl.textContent = '';
+      if (username.length < 3) {
+        if (errEl) errEl.textContent = 'Username must be at least 3 characters.';
+        return;
+      }
+      if (!/^\d{4,6}$/.test(pin)) {
+        if (errEl) errEl.textContent = 'PIN must be 4–6 digits.';
+        return;
+      }
+      if (isRegister && pin !== pin2) {
+        if (errEl) errEl.textContent = 'PINs do not match.';
+        return;
+      }
+      if (isRegister && !isUnlocked()) {
+        if (errEl)
+          errEl.textContent =
+            'Unlock the game first (purchase or access code), then create an account.';
+        return;
+      }
+      submit.disabled = true;
+      try {
+        if (isRegister) {
+          await registerAccount(username, pin);
+          toast('Account created — play on any device!');
+        } else {
+          await loginAccount(username, pin);
+          toast('Signed in — welcome back!');
+        }
+        closeModal();
+        if (!isUnlocked()) {
+          // Login without local unlock — should have received cloud unlock
+          if (!isUnlocked()) {
+            toast('No unlock on this account yet. Purchase once, then create an account.');
+            document.getElementById('main-nav').classList.remove('visible');
+            showScreen('paywall');
+            renderAccountPanels();
+            return;
+          }
+        }
+        await enterApp();
+        renderAccountPanels();
+      } catch (err) {
+        if (errEl) errEl.textContent = (err && err.message) || 'Something went wrong.';
+        submit.disabled = false;
+      }
+    };
+
+    submit.onclick = run;
+    ['auth-username', 'auth-pin', 'auth-pin2'].forEach(function (id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          run();
+        }
+      });
+    });
+    setTimeout(function () {
+      const u = document.getElementById('auth-username');
+      if (u) u.focus();
+    }, 50);
   }
 
   function pickDrill() {
@@ -3085,19 +3613,34 @@
 
   function setBoutMode(mode) {
     // prep | train | done
+    // Demo card stays visible in every mode so kids can watch while working.
     const prep = document.getElementById('bout-prep');
     const train = document.getElementById('bout-timer-card');
+    const screen = document.getElementById('screen-bout');
+    const stepsBtn = document.getElementById('btn-toggle-bout-steps');
+    const stepsLive = document.getElementById('bout-steps-live');
     if (!prep || !train) return;
+    if (screen) {
+      screen.classList.remove('mode-prep', 'mode-train', 'mode-done');
+      screen.classList.add('mode-' + mode);
+    }
     if (mode === 'prep') {
       prep.style.display = '';
       train.style.opacity = '1';
-    } else if (mode === 'train') {
-      prep.style.display = 'none';
-      train.style.opacity = '1';
+      if (stepsBtn) stepsBtn.style.display = 'none';
+      if (stepsLive) {
+        stepsLive.classList.remove('open');
+        stepsLive.innerHTML = '';
+      }
+      if (stepsBtn) {
+        stepsBtn.setAttribute('aria-expanded', 'false');
+        stepsBtn.textContent = 'Show steps';
+      }
     } else {
-      // done: show short prep summary optional — keep timer card focused
+      // train | done: hide long prep card; demo stays; steps available on demand
       prep.style.display = 'none';
       train.style.opacity = '1';
+      if (stepsBtn) stepsBtn.style.display = '';
     }
   }
 
@@ -3109,9 +3652,32 @@
     document.getElementById('bout-drill-title').textContent = drill.title;
     document.getElementById('bout-drill-setup').textContent = drill.setup;
     document.getElementById('bout-video').innerHTML = renderVideoHtml(drill.video);
-    document.getElementById('bout-drill-steps').innerHTML = drill.steps
+    const stepsHtml = (drill.steps || [])
       .map((s) => '<li>' + s + '</li>')
       .join('');
+    document.getElementById('bout-drill-steps').innerHTML = stepsHtml;
+    // Keep a copy for the in-timer "Show steps" panel (no second video load)
+    const stepsLive = document.getElementById('bout-steps-live');
+    if (stepsLive) {
+      stepsLive.classList.remove('open');
+      stepsLive.dataset.stepsHtml =
+        '<p class="muted" style="font-size:0.75rem;margin-bottom:6px">' +
+        (drill.setup ? escapeHtml(drill.setup) : '') +
+        '</p><ol>' +
+        stepsHtml +
+        '</ol>' +
+        (drill.counsel
+          ? '<p class="muted" style="font-size:0.8rem;margin-top:8px;font-style:italic">Tip: ' +
+            escapeHtml(drill.counsel) +
+            '</p>'
+          : '');
+      stepsLive.innerHTML = '';
+    }
+    const stepsBtn = document.getElementById('btn-toggle-bout-steps');
+    if (stepsBtn) {
+      stepsBtn.setAttribute('aria-expanded', 'false');
+      stepsBtn.textContent = 'Show steps';
+    }
     document.getElementById('bout-counsel').textContent =
       'Tip: ' + drill.counsel;
 
@@ -3645,6 +4211,7 @@
     document.getElementById('rank-emblem').textContent = state.emblem;
     document.getElementById('rank-title').textContent = 'Level ' + prog.rank;
     document.getElementById('rank-band').textContent = rankBand(prog.rank);
+    renderAccountPanels();
     if (prog.maxed) {
       document.getElementById('rank-aura-meta').textContent =
         state.aura.toLocaleString() + ' Aura · Max Level ' + MAX_RANK;
@@ -4218,6 +4785,23 @@
       setBoutMode('prep');
       updateTimerUI();
     });
+    on('btn-toggle-bout-steps', 'click', () => {
+      const live = document.getElementById('bout-steps-live');
+      const btn = document.getElementById('btn-toggle-bout-steps');
+      if (!live || !btn) return;
+      const open = !live.classList.contains('open');
+      if (open) {
+        live.innerHTML = live.dataset.stepsHtml || '';
+        live.classList.add('open');
+        btn.textContent = 'Hide steps';
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        live.classList.remove('open');
+        live.innerHTML = '';
+        btn.textContent = 'Show steps';
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
     on('btn-sound-toggle', 'click', () => {
       setSoundEnabled(!soundEnabled);
     });
@@ -4348,6 +4932,9 @@
       updateSoundToggleUI();
       on('btn-buy', 'click', startCheckout);
       on('btn-redeem-code', 'click', redeemCode);
+      on('btn-paywall-signin', 'click', function () {
+        openAuthModal('login');
+      });
 
       on('btn-export-save', 'click', async () => {
         if (!state || !state.name) {
@@ -4392,6 +4979,36 @@
       if (!isUnlocked()) {
         const tok = await idbGet(UNLOCK_KEY);
         if (tok && typeof tok === 'string') setUnlockToken(tok);
+      }
+
+      // Session on a new browser: restore unlock + character from cloud
+      if (!isUnlocked() && getSessionToken()) {
+        try {
+          const cloud = await cloudPull();
+          if (cloud && cloud.unlockToken) {
+            setUnlockToken(cloud.unlockToken);
+            try {
+              idbSet(UNLOCK_KEY, cloud.unlockToken);
+            } catch (e) {
+              /* ignore */
+            }
+          }
+          if (cloud && cloud.character && cloud.character.name) {
+            applyCharacterFromCloud(cloud.character);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+              /* ignore */
+            }
+            idbSet(STORAGE_KEY, state);
+            lastCloudSaveAt = cloud.updatedAt || null;
+          }
+          if (cloud && cloud.user && cloud.user.username) {
+            setAccountUsername(cloud.user.username);
+          }
+        } catch (err) {
+          console.warn('Session restore failed', err);
+        }
       }
 
       if (isUnlocked()) {
