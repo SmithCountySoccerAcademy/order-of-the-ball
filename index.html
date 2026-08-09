@@ -857,24 +857,52 @@
       </div>
     </section>
 
-    <!-- TUTORIAL (Initiate orientation) -->
+    <!-- TUTORIAL (Initiate orientation — practice bout matches real Train layout) -->
     <section class="screen" id="screen-tutorial">
-      <div class="screen-scroll" style="display:flex;flex-direction:column;justify-content:center;gap:16px;padding-top:16px;">
-        <div style="text-align:center">
-          <div class="brand-logo-wrap">
-            <img class="brand-logo brand-logo-sm" src="assets/logo.jpg" alt="" width="56" height="56" />
+      <div class="screen-scroll" style="display:flex;flex-direction:column;gap:16px;padding-top:16px;">
+        <!-- Steps 1–2 & 4: story -->
+        <div id="tut-intro-block" style="display:flex;flex-direction:column;justify-content:center;gap:16px;flex:1">
+          <div style="text-align:center">
+            <div class="brand-logo-wrap">
+              <img class="brand-logo brand-logo-sm" src="assets/logo.jpg" alt="" width="56" height="56" />
+            </div>
+            <p class="tag" style="margin-top:10px" id="tut-step-tag">Step 1 of 4</p>
+            <h1 class="hero-title" style="font-size:1.45rem;margin-top:8px" id="tut-title">Welcome, Initiate</h1>
+            <p class="subtitle" id="tut-body" style="margin-top:10px;text-align:left;max-width:22rem;margin-left:auto;margin-right:auto"></p>
           </div>
-          <p class="tag" style="margin-top:10px" id="tut-step-tag">Step 1 of 4</p>
-          <h1 class="hero-title" style="font-size:1.45rem;margin-top:8px" id="tut-title">Welcome, Initiate</h1>
-          <p class="subtitle" id="tut-body" style="margin-top:10px;text-align:left;max-width:22rem;margin-left:auto;margin-right:auto"></p>
+          <div class="card" id="tut-card" style="display:none"></div>
         </div>
-        <div class="card" id="tut-card" style="display:none"></div>
-        <div class="card" id="tut-mini-timer" style="display:none;text-align:center">
-          <div id="tut-phase-badge" class="phase-badge work">Work</div>
-          <div class="timer phase-work" id="tut-timer" style="font-size:2.75rem">0:20</div>
-          <p class="muted" id="tut-timer-meta" style="margin-top:6px">Round 1 of 2</p>
-          <button type="button" class="btn btn-royal" style="margin-top:12px" id="btn-tut-timer">Begin practice</button>
+
+        <!-- Step 3: real bout layout (prep + demo + timer) -->
+        <div id="tut-bout-block" style="display:none">
+          <p class="muted" style="text-align:center;font-size:0.75rem;margin-bottom:10px" id="tut-bout-kicker">
+            Practice bout · same layout as Train
+          </p>
+          <div class="card card-parchment" id="tut-prep" style="margin-bottom:12px">
+            <span class="tag" style="border-color:var(--gold-dim);color:var(--royal)" id="tut-path-tag">Initiate</span>
+            <h2 style="margin-top:8px;font-size:1.25rem" id="tut-drill-title">Drill</h2>
+            <p style="margin-top:6px;font-size:0.9rem;opacity:0.85" id="tut-drill-setup"></p>
+            <ol class="steps" id="tut-drill-steps"></ol>
+            <div class="counsel" id="tut-counsel"></div>
+            <p class="muted" style="font-size:0.75rem;margin-top:10px">
+              Read the steps, watch the demo, then start the timer — just like every real bout. The demo stays up while you train.
+            </p>
+          </div>
+          <div class="card" id="tut-demo-card" style="margin-bottom:12px">
+            <p class="muted" style="margin:0;font-size:0.8rem;text-align:left">Demonstration</p>
+            <div id="tut-video" class="video-wrap" style="margin-top:8px" aria-label="Tutorial drill demonstration"></div>
+          </div>
+          <div class="card" id="tut-timer-card" style="text-align:center;margin-bottom:4px">
+            <p class="muted" style="margin:0 0 6px;text-align:left;font-size:0.8rem">Timer</p>
+            <div id="tut-phase-badge" class="phase-badge work">Work</div>
+            <div class="timer phase-work" id="tut-timer" style="font-size:2.75rem">0:20</div>
+            <p class="muted" style="margin-top:6px" id="tut-timer-meta">Round 1 of 2</p>
+            <div class="bar" style="margin-top:10px"><i id="tut-progress-bar" style="width:0%"></i></div>
+            <p class="muted" style="margin-top:8px;font-size:0.8rem" id="tut-timer-hint">One ball · about a 5×5 space</p>
+            <button type="button" class="btn btn-royal" style="margin-top:14px" id="btn-tut-timer">Start timer</button>
+          </div>
         </div>
+
         <button type="button" class="btn btn-gold" id="btn-tut-next">Continue</button>
         <button type="button" class="btn btn-ghost" id="btn-tut-skip" style="font-size:0.75rem">Skip tutorial</button>
       </div>
@@ -3042,20 +3070,41 @@
     return state.playerId;
   }
 
-  /** Short practice bout in the tutorial (preview of Initiate → Squire path). */
-  const TUTORIAL_DRILL = {
-    title: 'First Taps of the Order',
-    setup: 'One ball · about 5×5 · soft knees · ~1 min practice',
-    steps: [
-      'Gentle toe taps on top of the ball — alternate feet, ball almost still.',
-      'WORK: soft springs, quiet head. Slow is correct.',
-      'REST: one sole rests on the ball (friendship, not panic).',
-      'Stay inside your square the whole time.',
-    ],
-    counsel:
-      'Every knight was once an initiate. Body first, then calm taps — chaos can wait.',
-    timing: { workSec: 20, restSec: 10, rounds: 2 },
-  };
+  /**
+   * Tutorial practice uses the real Initiate “First Taps” scroll so the
+   * layout matches Train (prep + demo + timer). Timing is shortened for the intro.
+   */
+  function getTutorialDrill() {
+    const path = RANK_SCROLLS.find(function (p) {
+      return p.id === 'initiate';
+    });
+    const base =
+      path &&
+      (path.scrolls || []).find(function (d) {
+        return d.id === 'in6';
+      });
+    if (base) {
+      return Object.assign({}, base, {
+        setup: (base.setup || 'One ball · 5×5') + ' · short practice',
+        timing: { workSec: 20, restSec: 10, rounds: 2 },
+      });
+    }
+    return {
+      id: 'tut1',
+      title: 'First Taps of the Order',
+      setup: 'One ball · about 5×5 · soft knees · short practice',
+      video: '',
+      steps: [
+        'Gentle toe taps on top of the ball — alternate feet, ball almost still.',
+        'WORK: soft springs, quiet head. Slow is correct.',
+        'REST: one sole rests on the ball (friendship, not panic).',
+        'Stay inside your square the whole time.',
+      ],
+      counsel:
+        'Every knight was once an initiate. Body first, then calm taps — chaos can wait.',
+      timing: { workSec: 20, restSec: 10, rounds: 2 },
+    };
+  }
 
   /** Aura for finishing the tutorial practice (~half a Squire scroll; short bout). Skip earns nothing. */
   const TUTORIAL_AURA_COMPLETE = 20;
@@ -5270,14 +5319,70 @@
     tutTimer.running = false;
   }
 
+  function setTutBoutMode(mode) {
+    // prep | train | done — mirrors setBoutMode so tutorial feels like Train
+    const prep = document.getElementById('tut-prep');
+    const screen = document.getElementById('screen-tutorial');
+    if (screen) {
+      screen.classList.remove('mode-prep', 'mode-train', 'mode-done');
+      screen.classList.add('mode-' + (mode || 'prep'));
+    }
+    if (!prep) return;
+    if (mode === 'prep') {
+      prep.style.display = '';
+    } else {
+      // train / done: hide long prep; demo + timer stay (same as real bouts)
+      prep.style.display = 'none';
+    }
+  }
+
+  function fillTutorialBout() {
+    const drill = getTutorialDrill();
+    const title = document.getElementById('tut-drill-title');
+    const setup = document.getElementById('tut-drill-setup');
+    const steps = document.getElementById('tut-drill-steps');
+    const counsel = document.getElementById('tut-counsel');
+    const video = document.getElementById('tut-video');
+    const pathTag = document.getElementById('tut-path-tag');
+    if (pathTag) pathTag.textContent = 'Initiate';
+    if (title) title.textContent = drill.title || 'Practice';
+    if (setup) setup.textContent = drill.setup || '';
+    if (steps) {
+      steps.innerHTML = (drill.steps || [])
+        .map(function (s) {
+          return '<li>' + s + '</li>';
+        })
+        .join('');
+    }
+    if (counsel) counsel.textContent = drill.counsel ? 'Tip: ' + drill.counsel : '';
+    if (video) video.innerHTML = renderVideoHtml(drill.video);
+  }
+
+  function tutProgressPct() {
+    const segs = tutTimer.segments || [];
+    if (!segs.length) return 0;
+    let total = 0;
+    let done = 0;
+    for (let i = 0; i < segs.length; i++) {
+      const sec = segs[i].sec || 0;
+      total += sec;
+      if (i < tutTimer.index) done += sec;
+      else if (i === tutTimer.index) done += sec - (tutTimer.remaining || 0);
+    }
+    if (!total) return 0;
+    return Math.min(100, (done / total) * 100);
+  }
+
   function resetTutTimer() {
     stopTutTimer();
-    tutTimer.segments = buildSegments(TUTORIAL_DRILL);
+    const drill = getTutorialDrill();
+    tutTimer.segments = buildSegments(drill);
     tutTimer.index = 0;
     tutTimer.finished = false;
     tutTimer.running = false;
     tutTimer.started = false;
     tutTimer.remaining = tutTimer.segments[0] ? tutTimer.segments[0].sec : 20;
+    setTutBoutMode('prep');
     updateTutTimerUI();
   }
 
@@ -5287,18 +5392,24 @@
     const meta = document.getElementById('tut-timer-meta');
     const btn = document.getElementById('btn-tut-timer');
     const next = document.getElementById('btn-tut-next');
+    const bar = document.getElementById('tut-progress-bar');
+    const hint = document.getElementById('tut-timer-hint');
     const seg = tutTimer.segments[tutTimer.index];
+    if (!el || !badge || !meta || !btn || !next) return;
 
     if (tutTimer.finished || !seg) {
       el.textContent = '0:00';
       el.className = 'timer done';
       el.style.fontSize = '2.75rem';
-      badge.textContent = 'Complete';
+      badge.textContent = 'Done';
       badge.className = 'phase-badge done';
-      meta.textContent = 'Practice complete!';
+      meta.textContent = 'Timer finished';
+      if (bar) bar.style.width = '100%';
+      if (hint) hint.textContent = 'Nice work — continue when ready';
       btn.style.display = 'none';
       next.disabled = false;
       next.textContent = 'Continue';
+      setTutBoutMode('done');
       return;
     }
 
@@ -5313,8 +5424,18 @@
       (seg.round || tutTimer.index + 1) +
       ' of ' +
       (seg.rounds || tutTimer.segments.filter((s) => s.type === 'work').length);
+    if (bar) bar.style.width = tutProgressPct().toFixed(1) + '%';
+    if (hint) {
+      hint.textContent = isRest
+        ? 'Rest · breathe · stay ready in your 5×5'
+        : 'WORK · one ball · stay in your 5×5';
+    }
     btn.style.display = '';
-    btn.textContent = tutTimer.running ? 'Pause' : tutTimer.index === 0 && tutTimer.remaining === seg.sec ? 'Begin practice' : 'Resume';
+    if (!tutTimer.started) btn.textContent = 'Start timer';
+    else if (tutTimer.running) btn.textContent = 'Pause';
+    else btn.textContent = 'Resume';
+    if (tutTimer.running || tutTimer.started) setTutBoutMode('train');
+    else setTutBoutMode('prep');
     next.disabled = true;
     next.textContent = 'Finish practice first…';
   }
@@ -5365,12 +5486,14 @@
     const title = document.getElementById('tut-title');
     const body = document.getElementById('tut-body');
     const card = document.getElementById('tut-card');
-    const mini = document.getElementById('tut-mini-timer');
+    const intro = document.getElementById('tut-intro-block');
+    const bout = document.getElementById('tut-bout-block');
     const next = document.getElementById('btn-tut-next');
     const skip = document.getElementById('btn-tut-skip');
 
-    mini.style.display = 'none';
-    card.style.display = 'none';
+    if (intro) intro.style.display = '';
+    if (bout) bout.style.display = 'none';
+    if (card) card.style.display = 'none';
     next.disabled = false;
     skip.style.display = '';
 
@@ -5384,33 +5507,28 @@
       next.textContent = 'How do I train?';
     } else if (tutStep === 1) {
       tag.textContent = 'Step 2 of 4';
-      title.textContent = 'The daily quest';
+      title.textContent = 'How a bout works';
       body.innerHTML =
-        'Each day, complete <strong class="gold">3 Training Bouts</strong>.<br><br>' +
-        'Each bout is one scroll (drill) with a <strong class="gold">work / rest</strong> timer — follow the gold WORK and blue REST calls.<br><br>' +
+        'Each day, complete <strong class="gold">3 Training Bouts</strong>. Every bout looks the same:<br><br>' +
+        '1. <strong class="gold">Read</strong> the scroll (steps + tip)<br>' +
+        '2. <strong class="gold">Watch</strong> the demonstration<br>' +
+        '3. <strong class="gold">Run</strong> the work / rest timer (demo stays up while you train)<br><br>' +
         'Finish all 3 → <strong class="gold">Day Conquered</strong> → earn Aura and grow your streak.';
       card.style.display = '';
       card.innerHTML =
-        '<p style="font-size:0.9rem"><strong class="gold">Gear:</strong> one soccer ball<br>' +
+        '<p style="font-size:0.9rem;line-height:1.5"><strong class="gold">Gear:</strong> one soccer ball<br>' +
         '<strong class="gold">Space:</strong> about 5×5 feet (anywhere safe)<br>' +
-        '<strong class="gold">Aura:</strong> experience that raises your rank</p>';
-      next.textContent = 'Show me a practice bout';
+        '<strong class="gold">Aura:</strong> XP that raises your level</p>';
+      next.textContent = 'Try a practice bout';
     } else if (tutStep === 2) {
-      tag.textContent = 'Step 3 of 4';
-      title.textContent = TUTORIAL_DRILL.title;
-      body.innerHTML =
-        '<strong>' +
-        TUTORIAL_DRILL.setup +
-        '</strong><br><br>' +
-        TUTORIAL_DRILL.steps.map((s) => '• ' + s).join('<br>') +
-        '<br><br><em class="gold">Knight’s counsel:</em> ' +
-        TUTORIAL_DRILL.counsel +
-        '<br><br>Run the short timer below (2 work rounds). Completing it earns a small Aura gift.';
-      mini.style.display = '';
+      if (intro) intro.style.display = 'none';
+      if (bout) bout.style.display = '';
+      fillTutorialBout();
       resetTutTimer();
       next.textContent = 'Finish practice first…';
       next.disabled = true;
     } else if (tutStep === 3) {
+      stopTutTimer();
       tag.textContent = 'Step 4 of 4';
       title.textContent = 'Enter the Hall';
       body.innerHTML =
@@ -5468,9 +5586,6 @@
       return;
     }
     tutStep += 1;
-    if (tutStep === 3 && !tutTimer.finished && document.getElementById('tut-mini-timer').style.display !== 'none') {
-      // coming from step 2 only if finished
-    }
     renderTutorialStep();
   }
 
@@ -5548,6 +5663,7 @@
         stopTutTimer();
         updateTutTimerUI();
       } else {
+        setTutBoutMode('train');
         startTutTimerInterval();
       }
     });
